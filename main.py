@@ -2,13 +2,11 @@
 Includes
 '''
 import serial
-from data_check import parityGenerator as parity
+from data_check import parityGenerator, CRC16
 
-pg = parity()
+pg = CRC16()
 
-x = pg.data_P([118])
+x = pg.data_crc(0xA4E0303A10040203)
 print(x)
-#print(type(x))
-print(pg.break_data(x))
-print(pg.is_valid_parity(x))
+print(pg.check_crc16(x))
 
