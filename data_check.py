@@ -37,3 +37,5 @@ class CRC16:
         print(checksum)
         data_with_crc = data.to_bytes(byte_length, 'big')  + checksum.to_bytes(2, byteorder='big', signed=sign)
         return data_with_crc
+    
+
