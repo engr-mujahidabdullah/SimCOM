@@ -1,30 +1,13 @@
 from data_check import CRC16
+import serial
 
-x = CRC16()
-print(x.generate_crc16(0x0301000000010DCC))
+Identifier = 0x90
+data1 = 0x21AC1C2002B2BBBDAA01022300210012
+data2 = [0x21,0xAC, 0x1C, 0x20, 0x02, 0xB2, 0xBB, 0xBD, 0xAA, 0x01, 0x02, 0x23, 0x00, 0x21, 0x00, 0x12]
 
-def switch_case(option):
-    switch_dict = {
-        1: "Case 1",
-        2: "Case 2",
-        3: "Case 3",
-        4: "Case 4",
-        5: "Case 5",
-        6: "Case 6",
-        7: "Case 7",
-        8: "Case 8",
-        9: "Case 9",
-        10: "Case 10",
-        11: "Case 11",
-        12: "Case 12",
-        13: "Case 13",
-        14: "Case 14",
-        15: "Case 15"
-    }
+from Packet import Packet
+pack = Packet()
 
-    return switch_dict.get(option, "Invalid Case")
+print(pack._packet_(Identifier, data2))
 
-# Example usage:
-choice = 7
-result = switch_case(choice)
-print(result)
+print(pack._packet_(Identifier, data1))

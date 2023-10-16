@@ -89,7 +89,7 @@ class Battery:
             3532:self.temperature
         }
 
-        return switch_dict.get(cmd, "Invalid Case")
+        return switch_dict.get(cmd, 0xFFFF)
 
     
 

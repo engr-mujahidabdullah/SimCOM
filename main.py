@@ -29,4 +29,3 @@ except KeyboardInterrupt:
 finally:
     # Close the serial port when done
     ser.close()
-
