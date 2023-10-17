@@ -15,6 +15,8 @@ class CRC16:
                 else:
                     crc >>= 1
             self.crc16_table[i] = crc
+        print(self.crc16_table)
+
 
     def generate_crc16(self, data):
         if isinstance(data, list):

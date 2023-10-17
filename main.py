@@ -1,31 +1,31 @@
-'''
-Includes
-'''
 import serial
-from data_check import CRC16
-from Battery import Battery as Batt
 
 # Configure the serial port (adjust the port and baud rate as needed)
-ser = serial.Serial('COM4', 4800, parity="E")  
-Bat = Batt()
+ser = serial.Serial('COM5', 4800)  # Replace 'COM1' with the correct serial port name
+
+header = [0x00, 0x00]
+stream = []
 
 try:
     while True:
-        # Read data from the serial port (adjust the number of bytes to read as needed)
-        data = ser.read(10)  # Read 10 bytes, adjust this value based on your data size
-
-        # Convert the received bytes to a string
-        #data_str = data.decode('utf-8')  # Assuming data is in UTF-8 encoding
-
-        rst = Bat.response_rslt(data)
-        ser.write(rst.to_bytes(2, "big"))
-
-        # Process and use the data
-        #print(f"Received data: {data_str}")
-
+        stream = []
+        data = ser.read(2)  # Read one byte at a time
+        x = int.from_bytes(data, 'big')
+        if data:
+            if(x == 0xff00):
+                stream.append(data)
+                packet_length = ser.read(2)
+                stream.append(packet_length)
+                leng = int.from_bytes(packet_length, 'big')
+                data = ser.read(leng - 4)
+                stream.append(data)
+            print(stream)
+            stream = [int(byte) for byte_string in stream for byte in byte_string]
+            print(stream)
 except KeyboardInterrupt:
-    print("Serial reading stopped due to keyboard interrupt.")
-
+    print("Serial data capture stopped due to keyboard interrupt.")
+except serial.SerialException as e:
+    print(f"An error occurred: {e}")
 finally:
     # Close the serial port when done
     ser.close()

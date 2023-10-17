@@ -11,6 +11,7 @@ class Battery:
         self.SoC = SoC # in %age
         self.SoH = SoH # in %age
         self.crc = CRC16()
+        
 
 
     # Getters
