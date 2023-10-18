@@ -1,9 +1,6 @@
 from data_check import CRC16
 import serial
 
-Identifier = 0x90
-data1 = 0x21AC1C2002B2BBBDAA01022300210012
-data2 = [0x21,0xAC, 0x1C, 0x20, 0x02, 0xB2, 0xBB, 0xBD, 0xAA, 0x01, 0x02, 0x23, 0x00, 0x21, 0x00, 0x12]
 
 from Packet import Packet
 pack = Packet()
@@ -11,7 +8,7 @@ pack = Packet()
 packet_to_send = pack._packet_([0x00, 0xAA, 0xAB, 0x01], [0x12, 0x34], [0x01], [0x12, 0x34, 0x56])
 
 # Configure the serial port (adjust the port and baud rate as needed)
-ser = serial.Serial('COM4', 4800)  # Replace 'COM1' with the correct serial port name
+ser = serial.Serial('COM5', 4800)  # Replace 'COM1' with the correct serial port name
 
 # Define the byte array to send
 print(packet_to_send)

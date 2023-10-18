@@ -51,7 +51,8 @@ class Packet:
             packet = header + pack_len + cmd + type + serial_no + size + byte_data
         
         
-        crc = self.crc_.generate_crc16(packet).to_bytes(2, byteorder='big')
+        crc = self.crc_.min_CRC16(packet).to_bytes(2, byteorder='big')
+        print(crc)
         packet = packet + [byte for byte in crc]
         return packet
  
