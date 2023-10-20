@@ -3,7 +3,7 @@ CRC16_POLYNOMIAL = 0x1021
 class CRC16:
     def __init__(self):
         self.crc16_table = [0] * 256
-        self._generate_crc16_table()
+        #self._generate_crc16_table()
 
     def _generate_crc16_table(self):
         for i in range(256):
@@ -60,3 +60,22 @@ class CRC16:
                     crc = crc << 1
 
         return  crc & 0xFFFF  # Ensure the result is a 16-bit value
+    
+    def is_crc_valid(self, received_packet):
+        # Calculate the CRC for the received packet (excluding the CRC field)
+        calculated_crc = self.min_CRC16(received_packet[:-2])
+
+    # Extract the received CRC from the packet
+        received_crc = (received_packet[-2] << 8) | received_packet[-1]
+
+    # Compare the calculated CRC with the received CRC
+        if calculated_crc == received_crc:
+            return 1  # Valid CRC
+        else:
+            return 0  # Invalid CRC
+
+
+
+
+
+
