@@ -2,15 +2,25 @@ from data_check import CRC16
 from Packet import Packet, ParsedPacket
 
 class Battery(ParsedPacket):
-    def __init__(self, type = [0x1A], ID = [0x00,0x01, 0x23, 0x21], capacity=0x03E8, temperature = 0x0045, voltage=0x2034, current = 0, SoC = 0x64, SoH = 0x64):
+    def __init__(self, type = [0xAA], ID = [0x12,0x34, 0x56, 0x78]):
         self.type = type
         self.ID = ID
-        self.capacity = capacity  # in milliampere-hours (mAh)
-        self.temperature = temperature # in Celcius 
-        self.voltage = voltage    # in volts (V)
-        self.current = current.to_bytes(4, byteorder='big', signed=True)  # in milliampare (mA)
-        self.SoC = SoC # in %age
-        self.SoH = SoH # in %age
+        self.capacity = [0x00, 0x00, 0x00, 0x00]  # in milliampere-hours (mAh)
+        self.temperature = [0x00, 0x00] # in Celcius 
+        self.voltage = [0x00, 0x00]    # in volts (V)
+        self.current = [0x00, 0x00, 0x00, 0x00]
+        self.SoC = [0x00]
+        self.SoH = [0x00]
+        self.status = [0x00, 0x00, 0x00, 0x00]
+        self.dis_kwh = [0x00, 0x00, 0x00, 0x00]
+        self.char_kwh = [0x00, 0x00, 0x00, 0x00]
+        self.dis_time = [0x00, 0x00, 0x00, 0x00]
+        self.char_time = [0x00, 0x00, 0x00, 0x00]
+        self.h_voltage = [0x00, 0x00]
+        self.l_voltage = [0x00, 0x00]
+        self.h_temperature = [0x00, 0x00]
+        self.l_temperature = [0x00, 0x00]
+
 
 
 
@@ -70,7 +80,47 @@ class Battery(ParsedPacket):
 
     def response(self, data):
         data = self.process_packet(data)
-        if(data.type == 0x00 and data.serial == 0x0000):
+        if(data.type == 0x00 and data.serial == 0x000000 and data.cmd == 0x0000):
             return self._packet_(serial_no = self.ID, type = self.type, request=False)
+        if(data.type == self.type and data.serial == self.serial and data.cmd == 0x1111):
+            data = self.voltage + self.h_voltage + self.l_voltage + self.current + self.temperature + self.h_temperature + self.l_temperature + self.SoC + self.SoH + self.char_kwh + self.dis_kwh + self.char_time + self.dis_time + self.status
+            return self._packet_(serial_no = self.ID, type = self.type, cmd = self.cmd, data = data, request=False)
+        else:
+            print("invalid")
 
+    def parse_data(self, data):
+        index = 0
 
+        # Define lists to store the parsed data
+        self.voltage = [data[index], data[index + 1]]
+        index += 2
+
+        self.current = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        index += 4
+
+        self.temperature = [data[index], data[index + 1]]
+        index += 2
+
+        self.l_voltage = [data[index], data[index + 1]]
+        index += 2
+
+        self.h_voltage = [data[index], data[index + 1]]
+        index += 2
+
+        self.l_temperature = [data[index], data[index + 1]]
+        index += 2
+
+        self.char_kwh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        index += 4
+
+        self.dis_kwh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        index += 4
+
+        self.char_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        index += 4
+
+        self.dis_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        index += 4
+
+        self.status = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        index += 4

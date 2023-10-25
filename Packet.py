@@ -4,7 +4,7 @@ from data_check import CRC16
 req_Header = [0xff, 0x00]
 res_Header = [0xff, 0x55]
 
-Header_size = 2
+header_size = 2
 packetLen_size = 2
 cmd_size = 2
 type_size = 1
@@ -18,21 +18,19 @@ class Packet(CRC16):
         self.parse_packet = ParsedPacket()
         pass
 
-    def _packet_(self, serial_no = 0x00000000 , cmd = [0x00,0x00], type = 0, data = [], request = True):
-        if isinstance(data, list):
-            size = len(data)
-            byte_data = data
+    def _packet_(self, serial_no = 0x00000000 , cmd = [0x00,0x00], type = [0x000], data = [], request = True):
+        if(data != ''):
+            byte_data = self.type_convert(data)
+            size = len(byte_data)
         else:
-            size = (data.bit_length() + 7) // 8
-            data = data.to_bytes((data.bit_length() + 7) // 8, 'big')
-            byte_data = [byte for byte in data]
-        
-        if isinstance(serial_no, list):
-            pass
-        else:
-            Serial_size = (serial_no.bit_length() + 7) // 8
-            Serial_data = serial_no.to_bytes(Serial_size, 'big')
-            serial_no = [byte for byte in Serial_data]
+            byte_data = []
+            size = 0
+            
+        serial_no = self.type_convert(serial_no)
+
+        cmd = self.type_convert(cmd)
+        type = self.type_convert(type)
+
 
         if(request == True):
             header = req_Header
@@ -40,17 +38,28 @@ class Packet(CRC16):
             header = res_Header
 
         #if(type == 0 and req_Header == True):
-        #    pack_len = Header_size + packetLen_size + cmd_size + type_size + crc_size
+        #    pack_len = header_size + packetLen_size + cmd_size + type_size + crc_size
         #    pack_len =  [(pack_len >> 8) & 0xFF, pack_len & 0xFF]
         #    size =  [(size >> 8) & 0xFF, size & 0xFF]
         #    packet = header + pack_len + cmd + type
         
         #else:
 
-        pack_len = Header_size + packetLen_size + cmd_size + type_size + serial_size + payloadLen_size + size + crc_size
+        pack_len = header_size + packetLen_size + cmd_size + type_size + serial_size + payloadLen_size + size + crc_size
         pack_len =  [(pack_len >> 8) & 0xFF, pack_len & 0xFF]
         size =  [(size >> 8) & 0xFF, size & 0xFF]
-        packet = header + pack_len + cmd + type + serial_no + size + byte_data
+        if isinstance(type, list):
+            pass
+        else:
+            type = [type]
+    
+        if isinstance(cmd, list):
+            pass
+        else:
+            cmd = cmd.to_bytes((cmd.bit_length() + 7) // 8,'big')
+            cmd = [byte for byte in cmd]
+
+        packet = header + pack_len + type + serial_no + cmd  + size + byte_data
         
         
         crc = self.min_CRC16(packet).to_bytes(2, byteorder='big')
@@ -64,10 +73,11 @@ class ParsedPacket(Packet):
         self.serial = 0x00000000
         self.data_len = 0x0000
         self.data = []
+        
 
     def parse_received_packet(self, received_packet):
         if self.is_crc_valid(received_packet):
-            result = ParsedPacket()
+           
             index = 0
 
             # Skip header
@@ -76,25 +86,31 @@ class ParsedPacket(Packet):
             # Skip packet length
             index += 2
 
-            # Extract command
-            result.cmd = (received_packet[index] << 8) | received_packet[index + 1]
-            index += 2
-
             # Extract type
-            result.type = received_packet[index]
+            self.type = received_packet[index]
             index += 1
 
             # Extract serial
-            result.serial = (received_packet[index] << 24) | (received_packet[index + 1] << 16) | (received_packet[index + 2] << 8) | received_packet[index + 3]
+            self.serial = (received_packet[index] << 24) | (received_packet[index + 1] << 16) | (received_packet[index + 2] << 8) | received_packet[index + 3]
             index += 4
 
+            # Extract command
+            self.cmd = (received_packet[index] << 8) | received_packet[index + 1]
+            index += 2
+
             # Extract data length
-            result.data_len = (received_packet[index] << 8) | received_packet[index + 1]
+            self.data_len = (received_packet[index] << 8) | received_packet[index + 1]
             index += 2
 
             # Extract data
-            result.data = received_packet[index:-2]
+            self.data = received_packet[index:-2]
 
-            return result
+            return self
+        
+    def get_data(self):
+        try:
+            return self.data
+        except:
+            return "!"
 
     

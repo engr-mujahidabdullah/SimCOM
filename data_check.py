@@ -73,6 +73,18 @@ class CRC16:
             return 1  # Valid CRC
         else:
             return 0  # Invalid CRC
+        
+    def type_convert(self, data):
+        if isinstance(data, str):
+            data = bytes.fromhex(data)
+            data = [byte for byte in data]
+        if isinstance(data, list):
+            pass
+        else:
+            data_len = (data.bit_length() + 7) // 8
+            data = data.to_bytes(data_len, 'big')
+            data = [byte for byte in data]
+        return data
 
 
 

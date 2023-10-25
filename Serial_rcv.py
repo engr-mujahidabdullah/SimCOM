@@ -3,7 +3,7 @@ from Packet import ParsedPacket
 from data_check import CRC16
 
 # Configure the serial port (adjust the port and baud rate as needed)
-ser = serial.Serial('COM14', 4800)  # Replace 'COM1' with the correct serial port name
+ser = serial.Serial('COM16', 4800)  # Replace 'COM1' with the correct serial port name
 
 header = [0x00, 0x00]
 stream = []
