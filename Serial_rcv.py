@@ -3,7 +3,7 @@ from Packet import ParsedPacket
 from data_check import CRC16
 
 # Configure the serial port (adjust the port and baud rate as needed)
-ser = serial.Serial('COM16', 4800)  # Replace 'COM1' with the correct serial port name
+ser = serial.Serial('COM4', 4800)  # Replace 'COM1' with the correct serial port name
 
 header = [0x00, 0x00]
 stream = []
@@ -16,7 +16,7 @@ try:
         data = ser.read(2)  # Read one byte at a time
         x = int.from_bytes(data, 'big')
         if data:
-            if(x == 0xff00):
+            if(x == 0xff55):
                 stream.append(data)
                 packet_length = ser.read(2)
                 stream.append(packet_length)
