@@ -80,14 +80,24 @@ class Battery(ParsedPacket):
 
     def response(self, data):
         data = self.process_packet(data)
-        if(data.type == 0x00 and data.serial == 0x000000 and data.cmd == 0x0000):
+        if(data.type == [0x00] and data.serial == [0x00,0x00,0x00, 0x00] and data.cmd == [0x00,0x00]):
             return self._packet_(serial_no = self.ID, type = self.type, request=False)
+        
+        if(data.type == [0x01] and data.serial == self.ID and data.cmd == [0x00,0x00]):
+            return self._packet_(serial_no = self.ID, type = self.type, request=False)
+        
+        if(data.type == [0x01] and data.cmd == [0x00,0x00]):
+            return self._packet_(serial_no = self.ID, type = self.type, request=False)
+        
+        if(data.type == [0x00] and data.serial == self.ID and data.cmd == [0x01,0x00]):
+            return self._packet_(serial_no = self.ID, type = self.type, request=False)
+        
         if(data.type == self.type and data.serial == self.serial and data.cmd == 0x1111):
             data = self.voltage + self.h_voltage + self.l_voltage + self.current + self.temperature + self.h_temperature + self.l_temperature + self.SoC + self.SoH + self.char_kwh + self.dis_kwh + self.char_time + self.dis_time + self.status
             return self._packet_(serial_no = self.ID, type = self.type, cmd = self.cmd, data = data, request=False)
         else:
             print("invalid")
-
+ 
     def parse_data(self, data):
         index = 0
 

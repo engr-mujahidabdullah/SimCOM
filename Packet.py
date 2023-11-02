@@ -37,13 +37,6 @@ class Packet(CRC16):
         else:
             header = res_Header
 
-        #if(type == 0 and req_Header == True):
-        #    pack_len = header_size + packetLen_size + cmd_size + type_size + crc_size
-        #    pack_len =  [(pack_len >> 8) & 0xFF, pack_len & 0xFF]
-        #    size =  [(size >> 8) & 0xFF, size & 0xFF]
-        #    packet = header + pack_len + cmd + type
-        
-        #else:
 
         pack_len = header_size + packetLen_size + cmd_size + type_size + serial_size + payloadLen_size + size + crc_size
         pack_len =  [(pack_len >> 8) & 0xFF, pack_len & 0xFF]
@@ -111,6 +104,11 @@ class ParsedPacket(Packet):
         try:
             return self.data
         except:
-            return "!"
+            return -1
+        
+    def packet_attributes(self):
+        attributes = vars(self)  # Get all attributes of the class instance
+        for attr_name, attr_value in attributes.items():
+            print(f"{attr_name}: {attr_value}")
 
     

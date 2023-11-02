@@ -4,9 +4,11 @@ import serial.tools.list_ports
 import serial
 import threading
 from Packet import ParsedPacket
+from Charger import Charger
 
 # Create the main application window
 app = tk.Tk()
+c = Charger()
 app.title("Serial Communication App")
 pack = ParsedPacket()
 ser = None  # Initialize the serial object
@@ -67,6 +69,7 @@ def read_serial_data():
                     received_data_text.insert(tk.END,f"Serial: 0x{_data_.serial:08X}\n")
                     received_data_text.insert(tk.END,f"Data Length: {_data_.data_len}\n")
                     received_data_text.insert(tk.END,f"Data:{_data_.data}\n")
+                    c.data_parser(_data_.cmd, _data_.data)
                 app.update()  # Update the GUI to display new data
     except Exception as e:
         print(e)
