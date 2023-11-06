@@ -46,6 +46,23 @@ class CRC16:
             data = data.to_bytes(data_len, 'big')
             data = [byte for byte in data]
         return data
+    
+    def hex_array_to_value(self, hex_values):
+        result = int(''.join(format(x, '02x') for x in hex_values), 16)
+        return result
+
+    def bit_to_list(self, hex_value, bit_list):
+        # Convert the hexadecimal value to a binary string
+        binary_string = bin(hex_value)[2:].zfill(16)  # Ensure 16 bits
+
+        # Create a list of variables a1 to a16
+        #bit_list = [f'a{i}' for i in range(1, 17)]
+
+        # Create a dictionary where variable names are keys and corresponding bits from the binary string are values
+        bit_dict = {bit_list[i]: binary_string[i] for i in range(16)}
+
+        return bit_dict
+        # Print the result
 
 
 

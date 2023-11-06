@@ -23,7 +23,10 @@ class Charger(ParsedPacket):
         #self.temperature_restart = [0x00, 0x00]
         self.temperature_over_th = [0x00, 0x00]
         self.allow_charging = [0x00, 0x00]
-        self.status = [0x00, 0x00, 0x00, 0x00]
+        self.status = [0x00, 0x00]
+        self.char0200 = ["charging_CC_flag", "charging_CV_flag", "battery_full_flag", "no_battery_flag", "fan_on_flag",
+                          "alarm_on_flag", "light_on_flag", "shut_down_flag", "over_voltage_alarm_flag", "over_current_alarm_flag",
+                          "a", "b", "c", "d", "e", "f"]
     
 
     def charger_attributes(self):
@@ -56,6 +59,10 @@ class Charger(ParsedPacket):
         else:
             print("invalid")
     
+    def translate_Charger_status(self):
+        state = self.hex_array_to_value(self.status)
+        char02 = self.bit_to_list(state, self.char0200)
+        return char02
 
     def data_parser(self, cmd, data):
         index = 0
