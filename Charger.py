@@ -28,6 +28,31 @@ class Charger(ParsedPacket):
                           "alarm_on_flag", "light_on_flag", "shut_down_flag", "over_voltage_alarm_flag", "over_current_alarm_flag",
                           "a", "b", "c", "d", "e", "f"]
     
+    def char_variable(self):
+        # Create a list of variable names and values
+        variables = [
+            ("Type", self.type),
+            ("ID", self.ID),
+            ("Voltage Out", self.voltage_out),
+            ("Voltage Start", self.voltage_start),
+            ("Voltage Setpoint", self.voltage_setpoint),
+            ("Voltage Over Threshold", self.voltage_over_th),
+            ("Current Out", self.current_out),
+            ("Current Cutoff", self.current_cutoff),
+            ("Current Setpoint", self.current_setpoint),
+            ("Current Fan Start", self.current_fan_start),
+            ("Current Fan Stop", self.current_fan_stop),
+            ("Current Over Threshold", self.current_over_th),
+            ("Temperature Ambient", self.temperature_amb),
+            ("Temperature Heat Sink", self.temperature_hs),
+            ("Temperature Fan Start", self.temperature_fan_start),
+            ("Temperature Fan Stop", self.temperature_fan_stop),
+            ("Temperature Over Threshold", self.temperature_over_th),
+            ("Allow Charging", self.allow_charging),
+            ("Status", self.status),
+            ("Char0200", self.char0200)
+        ]
+        return variables
 
     def charger_attributes(self):
         attributes = vars(self)  # Get all attributes of the class instance
@@ -61,8 +86,8 @@ class Charger(ParsedPacket):
     
     def translate_Charger_status(self):
         state = self.hex_array_to_value(self.status)
-        char02 = self.bit_to_list(state, self.char0200)
-        return char02
+        self.status = self.bit_to_list(state, self.char0200)
+        return self.status
 
     def data_parser(self, cmd, data):
         index = 0
