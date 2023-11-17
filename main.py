@@ -13,5 +13,4 @@ pack = ParsedPacket()
 #c.charger_attributes()
 c.status = [0x0f, 0xf0]
 k = c.translate_Charger_status()
-for variable, bit in k.items():
-    print(f"{variable}: {bit}")
+print(k)

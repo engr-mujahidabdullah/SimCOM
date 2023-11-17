@@ -54,7 +54,7 @@ class CRC16:
     def bit_to_list(self, hex_value, bit_list):
         # Convert the hexadecimal value to a binary string
         binary_string = bin(hex_value)[2:].zfill(16)  # Ensure 16 bits
-
+        print(binary_string)
         # Create a list of variables a1 to a16
         #bit_list = [f'a{i}' for i in range(1, 17)]
 

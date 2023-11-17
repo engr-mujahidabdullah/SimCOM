@@ -22,11 +22,12 @@ class Charger(ParsedPacket):
         #self.temperature_cutoff = [0x00, 0x00]
         #self.temperature_restart = [0x00, 0x00]
         self.temperature_over_th = [0x00, 0x00]
-        self.allow_charging = [0x00, 0x00]
+        self.allow_charging = [0x00]
         self.status = [0x00, 0x00]
         self.char0200 = ["charging_CC_flag", "charging_CV_flag", "battery_full_flag", "no_battery_flag", "fan_on_flag",
                           "alarm_on_flag", "light_on_flag", "shut_down_flag", "over_voltage_alarm_flag", "over_current_alarm_flag",
-                          "a", "b", "c", "d", "e", "f"]
+                          "Null_flag1", "Null_flag2", "Null_flag3", "Null_flag4", "Null_flag5", "Allow_Charging"]
+        self.flags = {}
     
     def char_variable(self):
         # Create a list of variable names and values
@@ -49,10 +50,9 @@ class Charger(ParsedPacket):
             ("Temperature Fan Stop", self.temperature_fan_stop),
             ("Temperature Over Threshold", self.temperature_over_th),
             ("Allow Charging", self.allow_charging),
-            ("Status", self.status),
-            ("Char0200", self.char0200)
+            #("Status", self.status)
         ]
-        return variables
+        return dict(variables)  
 
     def charger_attributes(self):
         attributes = vars(self)  # Get all attributes of the class instance
@@ -84,14 +84,14 @@ class Charger(ParsedPacket):
         else:
             print("invalid")
     
-    def translate_Charger_status(self):
-        state = self.hex_array_to_value(self.status)
-        self.status = self.bit_to_list(state, self.char0200)
-        return self.status
+    def translate_Charger_status(self, state, array):
+        state = self.hex_array_to_value(state)
+        self.flags = self.bit_to_list(state, array)
+        return self.flags
 
     def data_parser(self, cmd, data):
         index = 0
-        if(cmd == [0x01, 0x00]):
+        if(cmd == [0x01, 0x00] or cmd == 0x0100):
             self.voltage_out = [data[index], data[index + 1]]
             index += 2
         
@@ -108,7 +108,7 @@ class Charger(ParsedPacket):
             index += 2
             return 0
 
-        if(cmd == [0x02, 0x00]):
+        if(cmd == [0x02, 0x00] or cmd == 0x0200):
             self.voltage_start = [data[index], data[index + 1]]
             index += 2
         
@@ -143,9 +143,10 @@ class Charger(ParsedPacket):
             index += 4
             return 0
         
-        if(cmd == [0x03, 0x00]):
-            self.allow_charging = [data[index], data[index + 1]]
-            index += 2         
+        if(cmd == [0x03, 0x00] or cmd == 0x0300):
+            self.allow_charging = [data[index]]
+            index += 1         
+            print(self.allow_charging)
             return 0   
 
         else:
