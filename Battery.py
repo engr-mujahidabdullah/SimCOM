@@ -12,14 +12,14 @@ class Battery(ParsedPacket):
         self.SoC = [0x00]
         self.SoH = [0x00]
         self.status = [0x00, 0x00, 0x00, 0x00]
-        self.dis_kwh = [0x00, 0x00, 0x00, 0x00]
-        self.char_kwh = [0x00, 0x00, 0x00, 0x00]
-        self.dis_time = [0x00, 0x00, 0x00, 0x00]
-        self.char_time = [0x00, 0x00, 0x00, 0x00]
-        self.h_voltage = [0x00, 0x00]
-        self.l_voltage = [0x00, 0x00]
-        self.h_temperature = [0x00, 0x00]
-        self.l_temperature = [0x00, 0x00]
+        self.discharging_KWh = [0x00, 0x00, 0x00, 0x00]
+        self.charging_KWh = [0x00, 0x00, 0x00, 0x00]
+        self.discharging_time = [0x00, 0x00, 0x00, 0x00]
+        self.charging_time = [0x00, 0x00, 0x00, 0x00]
+        self.voltage_high = [0x00, 0x00]
+        self.voltage_low = [0x00, 0x00]
+        self.temperature_high = [0x00, 0x00]
+        self.temperature_low = [0x00, 0x00]
 
 
 
@@ -111,25 +111,25 @@ class Battery(ParsedPacket):
         self.temperature = [data[index], data[index + 1]]
         index += 2
 
-        self.l_voltage = [data[index], data[index + 1]]
+        self.voltage_low = [data[index], data[index + 1]]
         index += 2
 
-        self.h_voltage = [data[index], data[index + 1]]
+        self.voltage_high = [data[index], data[index + 1]]
         index += 2
 
-        self.l_temperature = [data[index], data[index + 1]]
+        self.temperature_low = [data[index], data[index + 1]]
         index += 2
 
-        self.char_kwh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        self.charging_KWh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
         index += 4
 
-        self.dis_kwh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        self.discharging_KWh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
         index += 4
 
-        self.char_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        self.charging_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
         index += 4
 
-        self.dis_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+        self.discharging_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
         index += 4
 
         self.status = [data[index], data[index + 1], data[index + 2], data[index + 3]]
