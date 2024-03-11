@@ -63,6 +63,11 @@ class CRC16:
 
         return bit_dict
         # Print the result
+    
+    def bytes_to_list(self, byte_list, var_list, _bytes_ = 2):
+        integer_list = [byte_list[i+1] + (byte_list[i] << 8) for i in range(0, len(byte_list), _bytes_)]
+        byte_dict = {var_list[i]: integer_list[i] for i in range(len(var_list))}
+        return byte_dict
 
 
 

@@ -2,8 +2,8 @@ from Packet import Packet, ParsedPacket
 
 class Charger(ParsedPacket):
      
-    def __init__(self, ID = [0x00,0x00, 0x00, 0x01]):
-        self.type = type = [0x02]
+    def __init__(self, ID = [0x00,0x00, 0x00, 0x04]):
+        self.type = [0x01]
         self.ID = ID
         self.voltage_out = [0x00, 0x00]  # in Voltage        
         self.voltage_start = [0x00, 0x00]

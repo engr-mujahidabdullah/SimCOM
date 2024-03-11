@@ -2,8 +2,9 @@ from data_check import CRC16
 from Packet import Packet, ParsedPacket
 
 class Battery(ParsedPacket):
-    def __init__(self, type = [0xAA], ID = [0x12,0x34, 0x56, 0x78]):
-        self.type = type
+
+    def __init__(self, ID = [0x00,0x00, 0x00, 0x03]):
+        self.type = [0x02]
         self.ID = ID
         self.capacity = [0x00, 0x00, 0x00, 0x00]  # in milliampere-hours (mAh)
         self.temperature = [0x00, 0x00] # in Celcius 
@@ -20,9 +21,47 @@ class Battery(ParsedPacket):
         self.voltage_low = [0x00, 0x00]
         self.temperature_high = [0x00, 0x00]
         self.temperature_low = [0x00, 0x00]
+        self.all_voltage = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        self.all_temperature = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        self.micro_status = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        self.pack_allVoltage = ["Voltage_" + str(i) for i in range(1, 24)]
+        self.pack_allTemperature = ["Temperature" + str(i) for i in range(1, 5)]
+        
 
 
+    def batt_variable(self):
+        # Create a list of variable names and values
+        variables = [
+            ("Type", self.type),
+            ("ID", self.ID),
+            ("Capacity", self.capacity),
+            ("Temperature", self.temperature),
+            ("Voltage", self.voltage),
+            ("Current", self.current),
+            ("SoC", self.SoC),
+            ("SoH", self.SoH),
+            ("KWh Charging", self.charging_KWh),
+            ("KWh Discharging", self.discharging_KWh),
+            ("Charging Time", self.charging_time),
+            ("Discgarging Time", self.discharging_time),
+            ("Voltage High", self.voltage_high),
+            ("Voltage Low", self.voltage_low),
+            ("Temperature High", self.temperature_high),
+            ("Temperature Low", self.temperature_low),
+            #("All Voltage", self.all_voltage),
+            #("All Temperature", self.all_temperature),
+            ("Micro Status", self.micro_status),
+            ("Status", self.status)
+        ]
+        return dict(variables)
 
+    def batt_attributes(self):
+        attributes = vars(self)  # Get all attributes of the class instance
+        for attr_name, attr_value in attributes.items():
+            print(f"{attr_name}: {attr_value}")
 
     # Getters
     def get_ID(self):
@@ -98,39 +137,62 @@ class Battery(ParsedPacket):
         else:
             print("invalid")
  
-    def parse_data(self, data):
+    def translate_battery_pram(self, var_list, array):
+        self.flags = self.bytes_to_list(array, var_list)
+        return self.flags
+    
+    def data_parser(self, cmd, data):
         index = 0
 
-        # Define lists to store the parsed data
-        self.voltage = [data[index], data[index + 1]]
-        index += 2
+        if(cmd == [0x05, 0x00] or cmd == 0x0500):
+            self.all_voltage = data[index: index + 2*23]
+            index += 46
 
-        self.current = [data[index], data[index + 1], data[index + 2], data[index + 3]]
-        index += 4
+            self.current = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
 
-        self.temperature = [data[index], data[index + 1]]
-        index += 2
+            self.all_temperature = data[index: index + 2*4]
+            index += 8
 
-        self.voltage_low = [data[index], data[index + 1]]
-        index += 2
+            print(data[index])
+            print(data[index + 3])
+            self.micro_status = data[index: index + 8]
+            index += 8
 
-        self.voltage_high = [data[index], data[index + 1]]
-        index += 2
+        if(cmd == [0x01, 0x00] or cmd == 0x0100):
+            # Define lists to store the parsed data
+            self.voltage = [data[index], data[index + 1]]
+            index += 2
 
-        self.temperature_low = [data[index], data[index + 1]]
-        index += 2
+            self.current = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
 
-        self.charging_KWh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
-        index += 4
+            self.temperature = [data[index], data[index + 1]]
+            index += 2
 
-        self.discharging_KWh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
-        index += 4
+            self.voltage_low = [data[index], data[index + 1]]
+            index += 2
 
-        self.charging_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
-        index += 4
+            self.voltage_high = [data[index], data[index + 1]]
+            index += 2
 
-        self.discharging_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
-        index += 4
+            self.temperature_low = [data[index], data[index + 1]]
+            index += 2
 
-        self.status = [data[index], data[index + 1], data[index + 2], data[index + 3]]
-        index += 4
+            self.charging_KWh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+
+            self.discharging_KWh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+
+            self.charging_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+
+            self.discharging_time = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+
+            self.status = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+            
+        else:
+            return -1

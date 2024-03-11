@@ -62,7 +62,8 @@ def read_serial_data():
                     received_data_text.insert(tk.END, f"Data Length: {_data_.data_len}\n")
                     received_data_text.insert(tk.END, f"Data: {_data_.data}\n")
                     c.data_parser(_data_.cmd, _data_.data)
-
+                    c.type = c.type_convert(_data_.type)
+                    c.ID = c.type_convert(_data_.serial)
                     c.translate_Charger_status(c.status, c.char0200)
                     update_variable_values()
                 app.update()
