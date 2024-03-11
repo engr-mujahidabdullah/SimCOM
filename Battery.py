@@ -164,20 +164,29 @@ class Battery(ParsedPacket):
             self.voltage = [data[index], data[index + 1]]
             index += 2
 
+            self.voltage_high = [data[index], data[index + 1]]
+            index += 2
+
+            self.voltage_low = [data[index], data[index + 1]]
+            index += 2
+
             self.current = [data[index], data[index + 1], data[index + 2], data[index + 3]]
             index += 4
 
             self.temperature = [data[index], data[index + 1]]
             index += 2
 
-            self.voltage_low = [data[index], data[index + 1]]
-            index += 2
-
-            self.voltage_high = [data[index], data[index + 1]]
+            self.temperature_high = [data[index], data[index + 1]]
             index += 2
 
             self.temperature_low = [data[index], data[index + 1]]
             index += 2
+
+            self.SoC = [data[index]]
+            index += 1
+
+            self.SoH = [data[index]]
+            index += 1
 
             self.charging_KWh = [data[index], data[index + 1], data[index + 2], data[index + 3]]
             index += 4

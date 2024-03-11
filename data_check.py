@@ -48,7 +48,8 @@ class CRC16:
         return data
     
     def hex_array_to_value(self, hex_values):
-        result = int(''.join(format(x, '02x') for x in hex_values), 16)
+        #result = int(''.join(format(x, '02x') for x in hex_values), 16)
+        result=int.from_bytes(hex_values, byteorder='big', signed=True)
         return result
 
     def bit_to_list(self, hex_value, bit_list):

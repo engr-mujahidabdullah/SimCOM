@@ -36,15 +36,6 @@ def close_port():
     else:
         received_data_text.insert(tk.END, "No open port to close.\n")
 
-def append_to_csv_row_wise(filename, *lists):
-    # Transpose the lists
-    rows = zip(*lists)
-
-    with open(filename, 'a', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        for row in rows:
-            writer.writerow(row)
-
 def read_serial_data():
     global flag_dict, selected_port
     selected_port = com_port_var.get()
@@ -65,9 +56,10 @@ def read_serial_data():
                     print(d_size)
                     data = ser.read(d_size)
                     stream.append(data)
+                ser.reset_input_buffer()
                 stream = [int(byte) for byte_string in stream for byte in byte_string]
                 print(stream)
-                ser.reset_input_buffer()
+
 
                 if pack.is_crc_valid(stream):
                     print("CRC is valid.")
@@ -80,15 +72,21 @@ def read_serial_data():
                     c.type = c.type_convert(_data_.type)
                     c.ID = c.type_convert(_data_.serial)
                     c.data_parser(_data_.cmd, _data_.data)
+                    Voltage_data_text.insert(tk.END, f"{[c.all_voltage[i+1] + (c.all_voltage[i] << 8) for i in range(0, len(c.all_voltage), 2)]}\n")
+                    Voltage_data_text.see(tk.END)
+                    received_data_text.see(tk.END)
 
                     #c.translate_Charger_status(c.status, c.char0200)
                     update_variable_values()
-                    append_to_csv_row_wise("Voltages.csv", [c.all_voltage[i+1] + (c.all_voltage[i] << 8) for i in range(0, len(c.all_voltage), 2)])
                 else:
                     print("Invalid CRC")
                 app.update()
     except Exception as e:
         print(e)
+        if ser is not None and ser.is_open:
+            close_port()
+            print ('Reset exception')
+            open_port()
         pass
 
 def send_data():    
@@ -113,23 +111,20 @@ def refresh_com_ports():
     com_port_var.set(available_ports[0])  # Set the default COM port
 
 def update_variable_values():
-    pram = c.batt_variable()
-    
-    for var_name, var_value in pram.items():
+ 
+    for var_name, var_value in c.batt_variable().items():
         variables_values[var_name].configure(state="normal")
         variables_values[var_name].delete("1.0", tk.END)  # Clear the existing text
         variables_values[var_name].insert(tk.END, c.hex_array_to_value(var_value))  # Set the new value
         variables_values[var_name].configure(state="disabled")
 
 
-    print(c.all_voltage)
     for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
         Vol_values[var_name].configure(state="normal")
         Vol_values[var_name].delete("1.0", tk.END)  # Clear the existing text
         Vol_values[var_name].insert(tk.END, var_value)  # Set the new value
         Vol_values[var_name].configure(state="disabled")
 
-    print(c.all_temperature)
     for var_name, var_value in c.translate_battery_pram(c.pack_allTemperature, c.all_temperature).items():
         Tem_values[var_name].configure(state="normal")
         Tem_values[var_name].delete("1.0", tk.END)  # Clear the existing text
@@ -168,7 +163,7 @@ com_port_label = tk.Label(app, text="Select COM Port:")
 com_port_var = tk.StringVar()
 com_port_dropdown = ttk.Combobox(app, textvariable=com_port_var)
 refresh_com_ports()  # Initial population of COM ports
-refresh_button = tk.Button(app, text="Refresh COM Ports", command=refresh_com_ports)
+refresh_button = tk.Button(app, text="Refresh COM", command=refresh_com_ports)
 open_port_button = tk.Button(app, text="Open Port", command=open_port)
 close_port_button = tk.Button(app, text="Close Port", command=close_port, state=tk.DISABLED)
 serial_number_label = tk.Label(app, text="Serial Number:")
@@ -187,48 +182,50 @@ data_label = tk.Label(app, text="Data:")
 data_var = tk.StringVar()
 data_entry = tk.Entry(app, textvariable=data_var)
 send_button = tk.Button(app, text="Send Data", command=auto_sender)
-received_data_text = scrolledtext.ScrolledText(app, wrap=tk.WORD, width=50, height=10)
+received_data_text = scrolledtext.ScrolledText(app, wrap=tk.WORD, width=120, height=10)
 autoTime_label = tk.Label(app, text="Auto Time (sec)")
 autoTime_var = tk.IntVar()
 autoTime_entry = tk.Entry(app, textvariable=autoTime_var)
 autoTime_var.set(1)
 checkbox_var = tk.BooleanVar()
 checkbox = ttk.Checkbutton(app, text="Auto-Send", variable=checkbox_var)
+Voltage_data_text = scrolledtext.ScrolledText(app, wrap=tk.WORD, width=120, height=10)
 
 
 # Place widgets in the window
-com_port_label.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
-com_port_dropdown.grid(row=0, column=1, padx=10, pady=5)
-refresh_button.grid(row=0, column=2, padx=10, pady=5)
-open_port_button.grid(row=0, column=3, padx=10, pady=5)
-close_port_button.grid(row=0, column=4, padx=10, pady=5)
-serial_number_label.grid(row=1, column=0, padx=10, pady=5)
-serial_number_entry.grid(row=1, column=1, padx=10, pady=5)
-device_type_label.grid(row=2, column=0, padx=10, pady=5)
-device_type_entry.grid(row=2, column=1, padx=10, pady=5)
-command_label.grid(row=3, column=0, padx=10, pady=5)
-command_entry.grid(row=3, column=1, padx=10, pady=5)
-data_label.grid(row=4, column=0, padx=10, pady=5)
-data_entry.grid(row=4, column=1, padx=10, pady=5)
-autoTime_label.grid(row=5, column=0, padx=10, pady=5)
-autoTime_entry.grid(row=5, column=1, padx=10, pady=5)
-checkbox.grid(row=6, column=0, padx=10, pady=5)
-send_button.grid(row=7, column=0, padx=10, pady=5, columnspan=2)
-received_data_text.grid(row=1, column=2, padx=10, pady=5, columnspan=3, rowspan=10)
+com_port_label.grid(row=0, column=0)
+com_port_dropdown.grid(row=0, column=1)
+refresh_button.grid(row=0, column=2)
+open_port_button.grid(row=0, column=3)
+close_port_button.grid(row=0, column=4)
+serial_number_label.grid(row=1, column=0)
+serial_number_entry.grid(row=1, column=1)
+device_type_label.grid(row=2, column=0)
+device_type_entry.grid(row=2, column=1)
+command_label.grid(row=3, column=0)
+command_entry.grid(row=3, column=1)
+data_label.grid(row=4, column=0)
+data_entry.grid(row=4, column=1)
+autoTime_label.grid(row=5, column=0)
+autoTime_entry.grid(row=5, column=1)
+checkbox.grid(row=6, column=0)
+send_button.grid(row=6, column=1)
+received_data_text.grid(row=25, column=0, columnspan=12, rowspan=10)
+Voltage_data_text.grid(row=35, column=0, columnspan=12, rowspan=10)
 
-row = 8
+row = 1
 
 variables_labels = {}
 variables_values = {}
 
 for var_name, var_value in variables_dict.items():
     label = tk.Label(app, text=f"{var_name}:")
-    label.grid(row=row, column=0)
+    label.grid(row=row, column=2)
     
     value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
     value_text.insert(tk.END, c.hex_array_to_value(var_value))
     value_text.configure(state="disabled")
-    value_text.grid(row=row, column=1)
+    value_text.grid(row=row, column=3)
 
     variables_labels[var_name] = label
     variables_values[var_name] = value_text
@@ -240,26 +237,6 @@ Tem_values = {}
 
 for var_name, var_value in c.translate_battery_pram(c.pack_allTemperature, c.all_temperature).items():
     label = tk.Label(app, text=f"{var_name}:")
-    label.grid(row=row, column=0)
-    
-    value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
-    value_text.insert(tk.END, var_value)
-    value_text.configure(state="disabled")
-    value_text.grid(row=row, column=1)
-
-    Tem_labels[var_name] = label
-    Tem_values[var_name] = value_text
-    row += 1
-
-
-row = 10
-
-Vol_labels = {}
-Vol_values = {}
-
-
-for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
-    label = tk.Label(app, text=f"{var_name}:")
     label.grid(row=row, column=2)
     
     value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
@@ -267,10 +244,29 @@ for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_vol
     value_text.configure(state="disabled")
     value_text.grid(row=row, column=3)
 
+    Tem_labels[var_name] = label
+    Tem_values[var_name] = value_text
+    row += 1
+
+
+row = 1
+
+Vol_labels = {}
+Vol_values = {}
+
+
+for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
+    label = tk.Label(app, text=f"{var_name}:")
+    label.grid(row=row, column=4)
+    
+    value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
+    value_text.insert(tk.END, var_value)
+    value_text.configure(state="disabled")
+    value_text.grid(row=row, column=5)
+
     Vol_labels[var_name] = label
     Vol_values[var_name] = value_text
     row += 1
-
 
 
 # Rest of your code
