@@ -17,10 +17,16 @@ class Battery(ParsedPacket):
         self.charging_KWh = [0x00, 0x00, 0x00, 0x00]
         self.discharging_time = [0x00, 0x00, 0x00, 0x00]
         self.charging_time = [0x00, 0x00, 0x00, 0x00]
+        self.charging_curr_max_limt = [0x00, 0x00, 0x00, 0x00]
+        self.discharging_curr_max_limt = [0x00, 0x00, 0x00, 0x00]
         self.voltage_high = [0x00, 0x00]
         self.voltage_low = [0x00, 0x00]
+        self.cell_voltage_min_limt = [0x00, 0x00]
+        self.cell_voltage_max_limt = [0x00, 0x00]
         self.temperature_high = [0x00, 0x00]
         self.temperature_low = [0x00, 0x00]
+        self.temperature_min_limt = [0x00, 0x00]
+        self.temperature_max_limt = [0x00, 0x00]
         self.all_voltage = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -28,7 +34,7 @@ class Battery(ParsedPacket):
         self.all_temperature = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         self.micro_status = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         self.pack_allVoltage = ["Voltage_" + str(i) for i in range(1, 24)]
-        self.pack_allTemperature = ["Temperature" + str(i) for i in range(1, 5)]
+        self.pack_allTemperature = ["Temperature_" + str(i) for i in range(1, 5)]
         
 
 
@@ -51,6 +57,12 @@ class Battery(ParsedPacket):
             ("Voltage Low", self.voltage_low),
             ("Temperature High", self.temperature_high),
             ("Temperature Low", self.temperature_low),
+            ("Cell Voltage max Limt", self.cell_voltage_max_limt),
+            ("Cell Voltage min Limt", self.cell_voltage_min_limt),
+            ("Temperature max Limt", self.temperature_max_limt),
+            ("Temperature min Limt", self.temperature_min_limt),
+            ("Charging Curr max Limt", self.charging_curr_max_limt),
+            ("Discharging Curr max Limt", self.discharging_curr_max_limt),
             #("All Voltage", self.all_voltage),
             #("All Temperature", self.all_temperature),
             ("Micro Status", self.micro_status),
@@ -58,61 +70,11 @@ class Battery(ParsedPacket):
         ]
         return dict(variables)
 
+
     def batt_attributes(self):
         attributes = vars(self)  # Get all attributes of the class instance
         for attr_name, attr_value in attributes.items():
             print(f"{attr_name}: {attr_value}")
-
-    # Getters
-    def get_ID(self):
-        return self.ID
-
-    def get_type(self):
-        return self.type
-    
-    def get_capacity(self):
-        return self.capacity
-
-    def get_voltage(self):
-        return self.voltage
-
-    def get_current(self):
-        return self.current
-    
-    def get_SoH(self):
-        return self.voltage
-
-    def get_SoC(self):
-        return self.current
-
-    # Setters
-    def set_capacity(self, capacity):
-        if capacity > 0:
-            self.capacity = capacity
-        else:
-            print("Capacity must be a positive value.")
-
-    def set_voltage(self, voltage):
-        if voltage > 0:
-            self.voltage = voltage
-        else:
-            print("Voltage must be a positive value.")
-
-    def set_current(self, current):
-        self.current = current
-
-    def set_SoC(self, SoC):
-        if SoC >= 0 & SoC <= 100:
-            self.SoC = SoC
-        else:
-            print("SOC must be in a range")
-
-    def set_SoH(self, SoC):
-        if SoC >= 0 & SoC <= 100:
-            self.SoC = SoC
-        else:
-            print("SOC must be in a range")
-
 
     def process_packet(self, data):
         return self.parse_received_packet(data)
@@ -154,10 +116,28 @@ class Battery(ParsedPacket):
             self.all_temperature = data[index: index + 2*4]
             index += 8
 
-            print(data[index])
-            print(data[index + 3])
             self.micro_status = data[index: index + 8]
             index += 8
+
+        if(cmd == [0x03, 0x00] or cmd == 0x0300):
+            self.cell_voltage_min_limt = [data[index], data[index + 1]]
+            index += 2
+
+            self.cell_voltage_max_limt = [data[index], data[index + 1]]
+            index += 2
+
+            self.charging_curr_max_limt = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+
+            self.discharging_curr_max_limt = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+
+            self.temperature_max_limt = [data[index], data[index + 1]]
+            index += 2
+
+            self.temperature_max_limt = [data[index], data[index + 1]]
+            index += 2
+
 
         if(cmd == [0x01, 0x00] or cmd == 0x0100):
             # Define lists to store the parsed data

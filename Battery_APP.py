@@ -234,15 +234,16 @@ for var_name, var_value in variables_dict.items():
 Tem_labels = {}
 Tem_values = {}
 
+row = 1
 
 for var_name, var_value in c.translate_battery_pram(c.pack_allTemperature, c.all_temperature).items():
     label = tk.Label(app, text=f"{var_name}:")
-    label.grid(row=row, column=2)
+    label.grid(row=row, column=6)
     
     value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
     value_text.insert(tk.END, var_value)
     value_text.configure(state="disabled")
-    value_text.grid(row=row, column=3)
+    value_text.grid(row=row, column=7)
 
     Tem_labels[var_name] = label
     Tem_values[var_name] = value_text
