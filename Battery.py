@@ -33,6 +33,9 @@ class Battery(ParsedPacket):
                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         self.all_temperature = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         self.micro_status = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        self.macro_status = [0x00, 0x00, 0x00, 0x00]
+        self.session_id = [0x00, 0x00]
+        self.bat_en = [0x00]
         self.pack_allVoltage = ["Voltage_" + str(i) for i in range(1, 24)]
         self.pack_allTemperature = ["Temperature_" + str(i) for i in range(1, 5)]
         
@@ -103,6 +106,16 @@ class Battery(ParsedPacket):
         self.flags = self.bytes_to_list(array, var_list)
         return self.flags
     
+    def send_payload(self, cmd):
+        data =  []
+        if(cmd == [0x02, 0x00] or cmd == "0200"):
+            data = self.session_id + self.macro_status + self.bat_en
+        
+        if(cmd == [0x04, 0x00] or cmd == "0400"):
+            data = self.cell_voltage_min_limt + self.cell_voltage_max_limt + self.charging_curr_max_limt + self.discharging_curr_max_limt + self.temperature_max_limt + self.temperature_min_limt
+
+        return data
+    
     def data_parser(self, cmd, data):
         index = 0
 
@@ -119,7 +132,7 @@ class Battery(ParsedPacket):
             self.micro_status = data[index: index + 8]
             index += 8
 
-        if(cmd == [0x03, 0x00] or cmd == 0x0300):
+        if(cmd == [0x03, 0x00] or cmd == [0x04, 0x00] or cmd == 0x0400 or cmd == 0x0300):
             self.cell_voltage_min_limt = [data[index], data[index + 1]]
             index += 2
 
@@ -135,10 +148,19 @@ class Battery(ParsedPacket):
             self.temperature_max_limt = [data[index], data[index + 1]]
             index += 2
 
-            self.temperature_max_limt = [data[index], data[index + 1]]
+            self.temperature_min_limt = [data[index], data[index + 1]]
             index += 2
 
+        if(cmd == [0x02, 0x00] or cmd == 0x0200):
+            self.session_id = [data[index], data[index + 1]]
+            index += 2
 
+            self.macro_status = [data[index], data[index + 1], data[index + 2], data[index + 3]]
+            index += 4
+
+            self.bat_en = data[index]
+            index += 1
+    
         if(cmd == [0x01, 0x00] or cmd == 0x0100):
             # Define lists to store the parsed data
             self.voltage = [data[index], data[index + 1]]

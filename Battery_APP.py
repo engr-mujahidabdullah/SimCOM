@@ -96,6 +96,18 @@ def send_data():
     pack.type = device_type_var.get()
     pack.cmd = command_var.get()
     pack.data = data_var.get()
+
+    c.session_id = Session_ID_var.get()
+    c.macro_status = Reset_macro_var.get()
+    c.bat_en = bat_en_var.get()
+
+    for var_name, var_value in c.batt_variable().items():
+        var_value_int = variables_values[var_name].get("1.0", tk.END).strip()
+        var_value = c.update_hex_array(int(var_value_int), len(var_value))  # Get the text from the text box
+
+    pack.data = c.send_payload(pack.cmd)
+    print(pack.cmd)
+    print(pack.data)
     ser.reset_input_buffer()
 
     try:
@@ -116,7 +128,7 @@ def update_variable_values():
         variables_values[var_name].configure(state="normal")
         variables_values[var_name].delete("1.0", tk.END)  # Clear the existing text
         variables_values[var_name].insert(tk.END, c.hex_array_to_value(var_value))  # Set the new value
-        variables_values[var_name].configure(state="disabled")
+        variables_values[var_name].configure(state="normal")
 
 
     for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
@@ -130,6 +142,24 @@ def update_variable_values():
         Tem_values[var_name].delete("1.0", tk.END)  # Clear the existing text
         Tem_values[var_name].insert(tk.END, var_value * 0.01)  # Set the new value
         Tem_values[var_name].configure(state="disabled")
+
+
+
+    Session_ID_entry.configure(state="normal")
+    Session_ID_entry.delete(0, tk.END)
+    Session_ID_entry.insert(tk.END, c.session_id)
+    Session_ID_entry.configure(state="normal")
+
+    Reset_macro_entry.configure(state="normal")
+    Reset_macro_entry.delete(0, tk.END)
+    Reset_macro_entry.insert(tk.END, c.macro_status)
+    Reset_macro_entry.configure(state="normal")
+
+    #bat_en_entry.configure(state="normal")
+    #bat_en_entry.delete(1.0, tk.END)
+    #bat_en_entry.insert(tk.END, c.bat_en)
+    #bat_en_entry.configure(state="normal")
+
 
 import time
 def auto_send():
@@ -176,8 +206,8 @@ device_type_var.set("01")
 device_type_entry = tk.Entry(app, textvariable=device_type_var)
 command_label = tk.Label(app, text="Command:")
 command_var = tk.StringVar()
-command_entry = tk.Entry(app, textvariable=command_var)
-command_var.set("0000")
+command_combo = ttk.Combobox(app, textvariable=command_var)
+command_combo['values'] = ("0100", "0200", '0300', "0400", '0500')
 data_label = tk.Label(app, text="Data:")
 data_var = tk.StringVar()
 data_entry = tk.Entry(app, textvariable=data_var)
@@ -189,8 +219,19 @@ autoTime_entry = tk.Entry(app, textvariable=autoTime_var)
 autoTime_var.set(1)
 checkbox_var = tk.BooleanVar()
 checkbox = ttk.Checkbutton(app, text="Auto-Send", variable=checkbox_var)
+Session_ID_label = tk.Label(app, text="Session ID:")
+Session_ID_var = tk.StringVar()
+Session_ID_var.set("0001")
+Session_ID_entry = tk.Entry(app, textvariable=Session_ID_var)
+Reset_macro_label = tk.Label(app, text="Reset Macro Status Bits:")
+Reset_macro_var = tk.StringVar()
+Reset_macro_var.set("00000001")
+Reset_macro_entry = tk.Entry(app, textvariable=Reset_macro_var)
+bat_en_label = tk.Label(app, text="Battery EN/DS Status:")
+bat_en_var = tk.StringVar()
+bat_en_var.set("01")
+bat_en_entry = tk.Entry(app, textvariable=bat_en_var)
 Voltage_data_text = scrolledtext.ScrolledText(app, wrap=tk.WORD, width=120, height=10)
-
 
 # Place widgets in the window
 com_port_label.grid(row=0, column=0)
@@ -203,13 +244,19 @@ serial_number_entry.grid(row=1, column=1)
 device_type_label.grid(row=2, column=0)
 device_type_entry.grid(row=2, column=1)
 command_label.grid(row=3, column=0)
-command_entry.grid(row=3, column=1)
+command_combo.grid(row=3, column=1)
 data_label.grid(row=4, column=0)
 data_entry.grid(row=4, column=1)
 autoTime_label.grid(row=5, column=0)
 autoTime_entry.grid(row=5, column=1)
 checkbox.grid(row=6, column=0)
 send_button.grid(row=6, column=1)
+Session_ID_label.grid(row = 7, column =0)
+Session_ID_entry.grid(row = 7, column =1)
+Reset_macro_label.grid(row = 8, column =0)
+Reset_macro_entry.grid(row = 8, column =1)
+bat_en_label.grid(row = 9, column =0)
+bat_en_entry.grid(row = 9, column =1)
 received_data_text.grid(row=25, column=0, columnspan=12, rowspan=10)
 Voltage_data_text.grid(row=35, column=0, columnspan=12, rowspan=10)
 
@@ -224,7 +271,7 @@ for var_name, var_value in variables_dict.items():
     
     value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
     value_text.insert(tk.END, c.hex_array_to_value(var_value))
-    value_text.configure(state="disabled")
+    value_text.configure(state="normal")
     value_text.grid(row=row, column=3)
 
     variables_labels[var_name] = label

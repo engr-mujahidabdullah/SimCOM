@@ -69,6 +69,15 @@ class CRC16:
         integer_list = [byte_list[i+1] + (byte_list[i] << 8) for i in range(0, len(byte_list), _bytes_)]
         byte_dict = {var_list[i]: integer_list[i] for i in range(len(var_list))}
         return byte_dict
+    
+    def update_hex_array(self,  updated_value, array_size):
+        hex_array = [0x00] * array_size  # Initialize the hex array with zeros
+        
+        # Convert the updated value to hexadecimal and update the hex array
+        for i in range(array_size):
+            shift_amount = 8 * (array_size - 1 - i)  # Calculate the shift amount for each byte
+            hex_array[i] = (updated_value >> shift_amount) & 0xFF  # Extract the byte and update the array
+        return hex_array
 
 
 
