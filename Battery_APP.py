@@ -72,6 +72,7 @@ def read_serial_data():
                     c.type = c.type_convert(_data_.type)
                     c.ID = c.type_convert(_data_.serial)
                     c.data_parser(_data_.cmd, _data_.data)
+                    print(status_dict)
                     Voltage_data_text.insert(tk.END, f"{[c.all_voltage[i+1] + (c.all_voltage[i] << 8) for i in range(0, len(c.all_voltage), 2)]}\n")
                     Voltage_data_text.see(tk.END)
                     received_data_text.see(tk.END)
@@ -103,12 +104,20 @@ def send_data():
 
     for var_name, var_value in c.batt_variable().items():
         var_value_int = variables_values[var_name].get("1.0", tk.END).strip()
-        var_value = c.update_hex_array(int(var_value_int), len(var_value))  # Get the text from the text box
+        var_value = c.update_hex_array(int(var_value_int), len(var_value))
+    
+    status_value_list = []
+    for var_name, var_value in status_dict.items():
+        status_value_list.append(status_values[var_name].get().strip())
+        
+            #var_value = c.update_hex_array(int(var_value_int), len(var_value))  # Get the text from the text box
+    c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
 
+
+    
     pack.data = c.send_payload(pack.cmd)
-    print(pack.cmd)
-    print(pack.data)
     ser.reset_input_buffer()
+
 
     try:
         packet = pack._packet_(pack.serial, pack.cmd, pack.type, pack.data)
@@ -116,6 +125,8 @@ def send_data():
         received_data_text.insert(tk.END, f"data send : {str(packet)} \n")
     except Exception as e:
         received_data_text.insert(tk.END, f"Error: {str(e)}\n")
+
+    update_variable_values()
 
 def refresh_com_ports():
     available_ports = [port.device for port in serial.tools.list_ports.comports()]
@@ -143,6 +154,12 @@ def update_variable_values():
         Tem_values[var_name].insert(tk.END, var_value * 0.01)  # Set the new value
         Tem_values[var_name].configure(state="disabled")
 
+    for var_name, var_value in c.translate_Battery_status(c.status, c.micro_status).items():
+        status_values[var_name].delete(0, tk.END)  # Clear the existing text
+        status_values[var_name].insert(tk.END, var_value)  # Set the new value
+
+
+
 
 
     Session_ID_entry.configure(state="normal")
@@ -155,10 +172,10 @@ def update_variable_values():
     Reset_macro_entry.insert(tk.END, c.macro_status)
     Reset_macro_entry.configure(state="normal")
 
-    #bat_en_entry.configure(state="normal")
-    #bat_en_entry.delete(1.0, tk.END)
-    #bat_en_entry.insert(tk.END, c.bat_en)
-    #bat_en_entry.configure(state="normal")
+    bat_en_entry.configure(state="normal")
+    bat_en_entry.delete(0, tk.END)
+    bat_en_entry.insert(tk.END, c.bat_en)
+    bat_en_entry.configure(state="normal")
 
 
 import time
@@ -207,7 +224,7 @@ device_type_entry = tk.Entry(app, textvariable=device_type_var)
 command_label = tk.Label(app, text="Command:")
 command_var = tk.StringVar()
 command_combo = ttk.Combobox(app, textvariable=command_var)
-command_combo['values'] = ("0100", "0200", '0300', "0400", '0500')
+command_combo['values'] = ("0100", "0200", '0300', '0400', '0500', '0600')
 data_label = tk.Label(app, text="Data:")
 data_var = tk.StringVar()
 data_entry = tk.Entry(app, textvariable=data_var)
@@ -314,6 +331,30 @@ for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_vol
 
     Vol_labels[var_name] = label
     Vol_values[var_name] = value_text
+    row += 1
+
+
+row = 1 
+col = 8
+status_labels = {}
+status_values = {}
+status_dict = c.translate_Battery_status(c.status, c.micro_status)
+
+for var_name, var_value in status_dict.items():
+    label = tk.Label(app, text=f"{var_name}:")
+    label.grid(row=row, column=col)
+    
+    combobox = ttk.Combobox(app, values=[0, 1], width=2)
+    combobox.grid(row=row, column=col+1)
+    combobox.current(var_value)  # Set the initial value based on status_dict
+
+    status_labels[var_name] = label
+    status_values[var_name] = combobox
+
+    if row == 23:  # Adjust the condition based on your layout
+        col += 2
+        row = 0
+    
     row += 1
 
 

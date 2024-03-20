@@ -79,6 +79,22 @@ class CRC16:
             hex_array[i] = (updated_value >> shift_amount) & 0xFF  # Extract the byte and update the array
         return hex_array
 
+    def int_to_bit_list(self, num, num_bits):
+        # Create a mask with the specified number of bits
+        mask = (1 << num_bits) - 1
+        # Apply the mask to the number to extract the bits
+        bits = [int(bool(num & (1 << i))) for i in range(num_bits - 1, -1, -1)]
+        return bits
+    
+    def binary_to_val(self, byte_list):
+        # Convert the binary digits to a binary string
+        binary_str = ''.join(byte_list)
+        
+        # Convert the binary string to an integer
+        decimal_num = int(binary_str, 2)
+        
+        # Convert the decimal number to a hexadecimal byte
+        return decimal_num
 
 
 

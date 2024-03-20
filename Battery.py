@@ -38,7 +38,11 @@ class Battery(ParsedPacket):
         self.bat_en = [0x00]
         self.pack_allVoltage = ["Voltage_" + str(i) for i in range(1, 24)]
         self.pack_allTemperature = ["Temperature_" + str(i) for i in range(1, 5)]
+        status_flags = ["BAT_en/dn", "Char_SW_Stat", "Dis_SW_Stat", "Char_SW_Stat", "Char_SW_Fault", "Over_Temp_flag", "Un_Temp_flag",
+                       "Char_OC", "Dis_OC", "Temper_SW_flag", "BAT_UV", "BAT_OC", "New_CONFIG_flag", "Ext_EEPROM_full", "TBD", "TBD", "TBD", "TBD"]
+        self.status = status_flags + ["UV_Cell" + str(i) for i in range(1, 24)] + ["OV_Cell" + str(i) for i in range(1, 24)]
         
+
 
 
     def batt_variable(self):
@@ -69,7 +73,6 @@ class Battery(ParsedPacket):
             #("All Voltage", self.all_voltage),
             #("All Temperature", self.all_temperature),
             ("Micro Status", self.micro_status),
-            ("Status", self.status)
         ]
         return dict(variables)
 
@@ -106,6 +109,17 @@ class Battery(ParsedPacket):
         self.flags = self.bytes_to_list(array, var_list)
         return self.flags
     
+    def translate_Battery_status(self, state, array):
+        status_dict = {}
+        bit_list = [bit for byte in array for bit in bin(byte)[2:].zfill(8)]
+        if len(state) == len(bit_list):
+            for i in range(len(state)):
+                status_dict[state[i]] = bit_list[i]
+        else:
+            print("Error: State and bit_list must have the same length.")
+
+        return status_dict
+    
     def send_payload(self, cmd):
         data =  []
         if(cmd == [0x02, 0x00] or cmd == "0200"):
@@ -114,10 +128,15 @@ class Battery(ParsedPacket):
         if(cmd == [0x04, 0x00] or cmd == "0400"):
             data = self.cell_voltage_min_limt + self.cell_voltage_max_limt + self.charging_curr_max_limt + self.discharging_curr_max_limt + self.temperature_max_limt + self.temperature_min_limt
 
+        if(cmd == [0x06, 0x00] or cmd == "0600"):
+            data = self.micro_status
         return data
     
     def data_parser(self, cmd, data):
         index = 0
+
+        if(cmd == [0x06, 0x00] or cmd == 0x0600):
+            self.micro_status = data
 
         if(cmd == [0x05, 0x00] or cmd == 0x0500):
             self.all_voltage = data[index: index + 2*23]
