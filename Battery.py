@@ -36,11 +36,29 @@ class Battery(ParsedPacket):
         self.macro_status = [0x00, 0x00, 0x00, 0x00]
         self.session_id = [0x00, 0x00]
         self.bat_en = [0x00]
+        self.adc_vals = [0x00] * 56
+        self.eeprom_start = [0x00, 0x00]
+        self.eeprom_tostart = [0x00, 0x00]
+        self.eeprom_end = [0x00, 0x00]
         self.pack_allVoltage = ["Voltage_" + str(i) for i in range(1, 24)]
         self.pack_allTemperature = ["Temperature_" + str(i) for i in range(1, 5)]
         status_flags = ["BAT_en/dn", "Char_SW_Stat", "Dis_SW_Stat", "Char_SW_Stat", "Char_SW_Fault", "Over_Temp_flag", "Un_Temp_flag",
-                       "Char_OC", "Dis_OC", "Temper_SW_flag", "BAT_UV", "BAT_OC", "New_CONFIG_flag", "Ext_EEPROM_full", "TBD", "TBD", "TBD", "TBD"]
-        self.status = status_flags + ["UV_Cell" + str(i) for i in range(1, 24)] + ["OV_Cell" + str(i) for i in range(1, 24)]
+                       "Char_OC", "Dis_OC", "Temper_SW_flag", "BAT_UV", "BAT_OC", "New_CONFIG_flag", "Ext_EEPROM_full", "TBD1", "TBD2", "TBD3", "TBD4"]
+        self.status_ = status_flags + ["UV_Cell" + str(i) for i in range(1, 24)] + ["OV_Cell" + str(i) for i in range(1, 24)]
+        self.adc = ["Voltage_ADC_Cell_" + str(i) for i in range(1, 24)] + ["Current_ADC"] + ["Temperature_ADC_" + str(i) for i in range(1, 5)]
+        self.eeprom_data = [0x00] * 128
+
+        eep_page_data = ["Data Index 1", "Data Index 2","-","--","Years","Months","Days1","Days2","Hours","Minutes","Seconds"]
+        eep_page_data = eep_page_data + [f"cell_{i}" for i in range(1, 24) for _ in range(2)] 
+        eep_page_data = eep_page_data + ["Peak Charging Current", "Peak Charging Current","Peak Charging Current","Peak Charging Current","Average Charging Current",
+                                         "Average Charging Current","Average Charging Current","Average Charging Current","Peak Discharging Current","Peak Discharging Current",
+                                         "Peak Discharging Current","Peak Discharging Current","Average Discharging Current","Average Discharging Current","Average Discharging Current",
+                                         "Average Discharging Current","Max Temperature 1","Max Temperature 1","Max Temperature 2","Max Temperature 2","Max Temperature 3","Max Temperature 3",
+                                         "Max Temperature 4","Max Temperature 4","Micro Status Flag","Micro Status Flag","Micro Status Flag","Micro Status Flag","Micro Status Flag","Micro Status Flag",
+                                         "Micro Status Flag","Micro Status Flag","SOC","SOH","Discharging Wh","Discharging Wh","Discharging Wh","Discharging Wh","Charging Wh","Charging Wh","Charging Wh",
+                                         "Charging Wh","Discharging Timer","Discharging Timer","Discharging Timer","Discharging Timer","Charging Timer","Charging Timer","Charging Timer","Charging Timer" ]
+        self.eeprom_page_data = eep_page_data + ["TBD_" + str(i) for i in range(1, 22)]
+
         
 
 
@@ -72,7 +90,7 @@ class Battery(ParsedPacket):
             ("Discharging Curr max Limt", self.discharging_curr_max_limt),
             #("All Voltage", self.all_voltage),
             #("All Temperature", self.all_temperature),
-            ("Micro Status", self.micro_status),
+            #("Micro Status", self.micro_status)
         ]
         return dict(variables)
 
@@ -109,9 +127,15 @@ class Battery(ParsedPacket):
         self.flags = self.bytes_to_list(array, var_list)
         return self.flags
     
+    def translate_eeprom_page(self, var_list, array):
+        page = tuple(zip(var_list, array))
+        return page
+    
     def translate_Battery_status(self, state, array):
+        state = state[::-1]
         status_dict = {}
         bit_list = [bit for byte in array for bit in bin(byte)[2:].zfill(8)]
+        #bit_list = bit_list[::-1]
         if len(state) == len(bit_list):
             for i in range(len(state)):
                 status_dict[state[i]] = bit_list[i]
@@ -130,13 +154,36 @@ class Battery(ParsedPacket):
 
         if(cmd == [0x06, 0x00] or cmd == "0600"):
             data = self.micro_status
+    
+        if(cmd == [0x07, 0x00] or cmd == "0700"):
+            data = self.adc_vals
+
+        if(cmd == [0x0C, 0x00] or cmd == "0C00"):
+            data = self.eeprom_tostart
+
         return data
     
     def data_parser(self, cmd, data):
         index = 0
 
+        if(cmd == [0x0B, 0x00] or cmd == 0x0B00 or cmd == [0x0C, 0x00] or cmd == 0x0C00):
+            self.eeprom_data = data[index: index + 128]
+            index += 128
+
+        if(cmd == [0x0D, 0x00] or cmd == 0x0D00):
+            self.eeprom_start = [data[index], data[index + 1]]
+            index += 2
+
+            self.eeprom_end = [data[index], data[index + 1]]
+            index += 2
+
+        if(cmd == [0x07, 0x00] or cmd == 0x0700):
+            self.adc_vals = data[index: index + 2*28]
+            index += 56
+
         if(cmd == [0x06, 0x00] or cmd == 0x0600):
-            self.micro_status = data
+            self.micro_status = data[index: index + 8]
+            index += 8
 
         if(cmd == [0x05, 0x00] or cmd == 0x0500):
             self.all_voltage = data[index: index + 2*23]

@@ -7,8 +7,23 @@ import threading
 from Packet import ParsedPacket
 from Battery import Battery
 import serial.tools.list_ports
-import asyncio
-import csv
+
+
+root = tk.Tk() 
+root.title("Tab Widget") 
+tabControl = ttk.Notebook(root) 
+
+tab1 = ttk.Frame(tabControl) 
+tab2 = ttk.Frame(tabControl) 
+tab3 = ttk.Frame(tabControl)
+tab4 = ttk.Frame(tabControl)
+
+tabControl.add(tab1, text ='Main') 
+tabControl.add(tab2, text ='Flags/ADC')
+tabControl.add(tab4, text ='EEPROM') 
+tabControl.add(tab3, text ='Voltage') 
+tabControl.pack(expand = 1, fill ="both") 
+
 
 def open_port():
     global ser, reading_data
@@ -80,7 +95,7 @@ def read_serial_data():
                     update_variable_values()
                 else:
                     print("Invalid CRC")
-                app.update()
+                tab1.update()
     except Exception as e:
         print(e)
         if ser is not None and ser.is_open:
@@ -90,7 +105,7 @@ def read_serial_data():
         pass
 
 def send_data():    
-    global ser, selected_port 
+    global ser, selected_port
     selected_port = com_port_var.get()
     pack.serial = serial_number_var.get()
     pack.type = device_type_var.get()
@@ -100,17 +115,25 @@ def send_data():
     c.session_id = Session_ID_var.get()
     c.macro_status = Reset_macro_var.get()
     c.bat_en = bat_en_var.get()
+    c.eeprom_start = eeprom_start_var.get()
+    c.eeprom_end = eeprom_end_var.get()
+    c.eeprom_tostart = eeprom_tostart_var.get()
 
     for var_name, var_value in c.batt_variable().items():
         var_value_int = variables_values[var_name].get("1.0", tk.END).strip()
         var_value = c.update_hex_array(int(var_value_int), len(var_value))
+
+    adc_list = []
+    for var_name, var_value in c.translate_battery_pram(c.adc, c.adc_vals).items():
+        adc_value_int = adc_values[var_name].get("1.0", tk.END).strip()
+        adc_list = adc_list + (c.update_hex_array(int(adc_value_int), 2))
+    c.adc_vals = adc_list
     
     status_value_list = []
-    for var_name, var_value in c.translate_Battery_status(c.status, c.micro_status).items():
+    for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
         status_value_list.append(status_values[var_name].get().strip())
-        
-            #var_value = c.update_hex_array(int(var_value_int), len(var_value))  # Get the text from the text box
     c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
+    print(c.micro_status)
 
     pack.data = c.send_payload(pack.cmd)
     ser.reset_input_buffer()
@@ -150,18 +173,39 @@ def update_variable_values():
         Tem_values[var_name].insert(tk.END, var_value * 0.01)  # Set the new value
         Tem_values[var_name].configure(state="disabled")
 
-    for var_name, var_value in c.translate_Battery_status(c.status, c.micro_status).items():
+    for var_name, var_value in c.translate_battery_pram(c.adc, c.adc_vals).items():
+        adc_values[var_name].configure(state="normal")
+        adc_values[var_name].delete("1.0", tk.END)  # Clear the existing text
+        adc_values[var_name].insert(tk.END, var_value)  # Set the new value
+        adc_values[var_name].configure(state="normal")
+
+    for vars in c.translate_eeprom_page(c.eeprom_page_data, c.eeprom_data):
+        eeprom_values[vars[0]].configure(state="normal")
+        eeprom_values[vars[0]].delete("1.0", tk.END)  # Clear the existing text
+        eeprom_values[vars[0]].insert(tk.END, vars[1])  # Set the new value
+        eeprom_values[vars[0]].configure(state="normal")
+
+    for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
+        status_values[var_name].configure(state="normal")
         status_values[var_name].delete(0, tk.END)  # Clear the existing text
         status_values[var_name].insert(tk.END, var_value)  # Set the new value
+        status_values[var_name].configure(state="normal")
 
 
+    eeprom_start_entry.configure(state="normal")
+    eeprom_start_entry.delete(0, tk.END)
+    eeprom_start_entry.insert(tk.END, c.eeprom_start)
+    eeprom_start_entry.configure(state="normal")
 
+    eeprom_tostart_entry.configure(state="normal")
+    eeprom_tostart_entry.delete(0, tk.END)
+    eeprom_tostart_entry.insert(tk.END, c.eeprom_tostart)
+    eeprom_tostart_entry.configure(state="normal")
 
-
-    Session_ID_entry.configure(state="normal")
-    Session_ID_entry.delete(0, tk.END)
-    Session_ID_entry.insert(tk.END, c.session_id)
-    Session_ID_entry.configure(state="normal")
+    eeprom_end_entry.configure(state="normal")
+    eeprom_end_entry.delete(0, tk.END)
+    eeprom_end_entry.insert(tk.END, c.eeprom_end)
+    eeprom_end_entry.configure(state="normal")
 
     Reset_macro_entry.configure(state="normal")
     Reset_macro_entry.delete(0, tk.END)
@@ -190,8 +234,8 @@ def auto_sender():
         send_data()
 
 
-app = tk.Tk()
-app.title("Battery Communication App")
+#app = tk.Tk()
+#app.title("Battery Communication App")
 c = Battery()
 pack = ParsedPacket()
 ser = None
@@ -202,49 +246,61 @@ variables_dict = c.batt_variable()
 
 
 # Create and configure the tkinter widgets
-com_port_label = tk.Label(app, text="Select COM Port:")
+com_port_label = tk.Label(tab1, text="Select COM Port:")
 com_port_var = tk.StringVar()
-com_port_dropdown = ttk.Combobox(app, textvariable=com_port_var)
+com_port_dropdown = ttk.Combobox(tab1, textvariable=com_port_var)
 refresh_com_ports()  # Initial population of COM ports
-refresh_button = tk.Button(app, text="Refresh COM", command=refresh_com_ports)
-open_port_button = tk.Button(app, text="Open Port", command=open_port)
-close_port_button = tk.Button(app, text="Close Port", command=close_port, state=tk.DISABLED)
-serial_number_label = tk.Label(app, text="Serial Number:")
+refresh_button = tk.Button(tab1, text="Refresh COM", command=refresh_com_ports)
+open_port_button = tk.Button(tab1, text="Open Port", command=open_port)
+close_port_button = tk.Button(tab1, text="Close Port", command=close_port, state=tk.DISABLED)
+serial_number_label = tk.Label(tab1, text="Serial Number:")
 serial_number_var = tk.StringVar()
 serial_number_var.set("00000001")
-serial_number_entry = tk.Entry(app, textvariable=serial_number_var)
-device_type_label = tk.Label(app, text="Device Type:")
+serial_number_entry = tk.Entry(tab1, textvariable=serial_number_var)
+device_type_label = tk.Label(tab1, text="Device Type:")
 device_type_var = tk.StringVar()
 device_type_var.set("01")
-device_type_entry = tk.Entry(app, textvariable=device_type_var)
-command_label = tk.Label(app, text="Command:")
+device_type_entry = tk.Entry(tab1, textvariable=device_type_var)
+command_label = tk.Label(tab1, text="Command:")
 command_var = tk.StringVar()
-command_combo = ttk.Combobox(app, textvariable=command_var)
-command_combo['values'] = ("0100", "0200", '0300', '0400', '0500', '0600', '0700')
-data_label = tk.Label(app, text="Data:")
+command_combo = ttk.Combobox(tab1, textvariable=command_var)
+command_combo['values'] = ("0100", "0200", '0300', '0400', '0500', '0600', '0700', '0B00', '0C00', '0D00')
+data_label = tk.Label(tab1, text="Data:")
 data_var = tk.StringVar()
-data_entry = tk.Entry(app, textvariable=data_var)
-send_button = tk.Button(app, text="Send Data", command=auto_sender)
-received_data_text = scrolledtext.ScrolledText(app, wrap=tk.WORD, width=120, height=10)
-autoTime_label = tk.Label(app, text="Auto Time (sec)")
+data_entry = tk.Entry(tab1, textvariable=data_var)
+send_button = tk.Button(tab1, text="Send Data", command=auto_sender)
+received_data_text = scrolledtext.ScrolledText(tab1, wrap=tk.WORD, width=120, height=10)
+autoTime_label = tk.Label(tab1, text="Auto Time (sec)")
 autoTime_var = tk.IntVar()
-autoTime_entry = tk.Entry(app, textvariable=autoTime_var)
+autoTime_entry = tk.Entry(tab1, textvariable=autoTime_var)
 autoTime_var.set(1)
 checkbox_var = tk.BooleanVar()
-checkbox = ttk.Checkbutton(app, text="Auto-Send", variable=checkbox_var)
-Session_ID_label = tk.Label(app, text="Session ID:")
+checkbox = ttk.Checkbutton(tab1, text="Auto-Send", variable=checkbox_var)
+Session_ID_label = tk.Label(tab1, text="Session ID:")
 Session_ID_var = tk.StringVar()
 Session_ID_var.set("0001")
-Session_ID_entry = tk.Entry(app, textvariable=Session_ID_var)
-Reset_macro_label = tk.Label(app, text="Reset Macro Status Bits:")
+Session_ID_entry = tk.Entry(tab1, textvariable=Session_ID_var)
+Reset_macro_label = tk.Label(tab1, text="Reset Macro Status Bits:")
 Reset_macro_var = tk.StringVar()
 Reset_macro_var.set("00000001")
-Reset_macro_entry = tk.Entry(app, textvariable=Reset_macro_var)
-bat_en_label = tk.Label(app, text="Battery EN/DS Status:")
+Reset_macro_entry = tk.Entry(tab1, textvariable=Reset_macro_var)
+bat_en_label = tk.Label(tab1, text="Battery EN/DS Status:")
 bat_en_var = tk.StringVar()
 bat_en_var.set("01")
-bat_en_entry = tk.Entry(app, textvariable=bat_en_var)
-Voltage_data_text = scrolledtext.ScrolledText(app, wrap=tk.WORD, width=120, height=10)
+bat_en_entry = tk.Entry(tab1, textvariable=bat_en_var)
+Voltage_data_text = scrolledtext.ScrolledText(tab3, wrap=tk.WORD, width=120, height=10)
+
+eeprom_start_label = tk.Label(tab4, text="EEPROM Start Addr:")
+eeprom_start_var = tk.StringVar()
+eeprom_start_entry = tk.Entry(tab4, textvariable=eeprom_start_var)
+
+eeprom_end_label = tk.Label(tab4, text="EEPROM End Addr:")
+eeprom_end_var = tk.StringVar()
+eeprom_end_entry = tk.Entry(tab4, textvariable=eeprom_end_var)
+
+eeprom_tostart_label = tk.Label(tab4, text="EEPROM Start Addr to read:")
+eeprom_tostart_var = tk.StringVar()
+eeprom_tostart_entry = tk.Entry(tab4, textvariable=eeprom_tostart_var)
 
 # Place widgets in the window
 com_port_label.grid(row=0, column=0)
@@ -271,7 +327,13 @@ Reset_macro_entry.grid(row = 8, column =1)
 bat_en_label.grid(row = 9, column =0)
 bat_en_entry.grid(row = 9, column =1)
 received_data_text.grid(row=25, column=0, columnspan=12, rowspan=10)
-Voltage_data_text.grid(row=35, column=0, columnspan=12, rowspan=10)
+Voltage_data_text.grid(row=1, column=0, columnspan=12, rowspan=10)
+eeprom_start_label.grid(row=0, column=0)
+eeprom_start_entry.grid(row=0, column=1)
+eeprom_end_label.grid(row=1, column=0)
+eeprom_end_entry.grid(row=1, column=1)
+eeprom_tostart_label.grid(row=0, column=2)
+eeprom_tostart_entry.grid(row=0, column=3)
 
 row = 1
 
@@ -279,10 +341,10 @@ variables_labels = {}
 variables_values = {}
 
 for var_name, var_value in variables_dict.items():
-    label = tk.Label(app, text=f"{var_name}:")
+    label = tk.Label(tab1, text=f"{var_name}:")
     label.grid(row=row, column=2)
     
-    value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
+    value_text = tk.Text(tab1, wrap=tk.WORD, width=10, height=1)
     value_text.insert(tk.END, c.hex_array_to_value(var_value))
     value_text.configure(state="normal")
     value_text.grid(row=row, column=3)
@@ -297,10 +359,10 @@ Tem_values = {}
 row = 1
 
 for var_name, var_value in c.translate_battery_pram(c.pack_allTemperature, c.all_temperature).items():
-    label = tk.Label(app, text=f"{var_name}:")
+    label = tk.Label(tab1, text=f"{var_name}:")
     label.grid(row=row, column=6)
     
-    value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
+    value_text = tk.Text(tab1, wrap=tk.WORD, width=10, height=1)
     value_text.insert(tk.END, var_value)
     value_text.configure(state="disabled")
     value_text.grid(row=row, column=7)
@@ -317,10 +379,10 @@ Vol_values = {}
 
 
 for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
-    label = tk.Label(app, text=f"{var_name}:")
+    label = tk.Label(tab1, text=f"{var_name}:")
     label.grid(row=row, column=4)
     
-    value_text = tk.Text(app, wrap=tk.WORD, width=10, height=1)
+    value_text = tk.Text(tab1, wrap=tk.WORD, width=10, height=1)
     value_text.insert(tk.END, var_value)
     value_text.configure(state="disabled")
     value_text.grid(row=row, column=5)
@@ -331,16 +393,16 @@ for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_vol
 
 
 row = 1 
-col = 8
+col = 0
 status_labels = {}
 status_values = {}
-status_dict = c.translate_Battery_status(c.status, c.micro_status)
+status_dict = c.translate_Battery_status(c.status_, c.micro_status)
 
 for var_name, var_value in status_dict.items():
-    label = tk.Label(app, text=f"{var_name}:")
+    label = tk.Label(tab2, text=f"{var_name}:")
     label.grid(row=row, column=col)
     
-    combobox = ttk.Combobox(app, values=[0, 1], width=2)
+    combobox = ttk.Combobox(tab2, values=[0, 1], width=2)
     combobox.grid(row=row, column=col+1)
     combobox.current(var_value)  # Set the initial value based on status_dict
 
@@ -353,6 +415,51 @@ for var_name, var_value in status_dict.items():
     
     row += 1
 
+row = 1
+col = 8
+
+adc_labels = {}
+adc_values = {}
+
+for var_name, var_value in c.translate_battery_pram(c.adc, c.adc_vals).items():
+    label = tk.Label(tab2, text=f"{var_name}:")
+    label.grid(row=row, column=col)
+    
+    value_text = tk.Text(tab2, wrap=tk.WORD, width=10, height=1)
+    value_text.insert(tk.END, var_value)
+    value_text.configure(state="normal")
+    value_text.grid(row=row, column=col+1)
+
+    adc_labels[var_name] = label
+    adc_values[var_name] = value_text
+
+    if(row == 23):
+        col += 2
+        row = 0
+    row += 1
+
+row = 3
+col = 0
+eeprom_labels = {}
+eeprom_values = {}
+
+for x in c.translate_eeprom_page(c.eeprom_page_data, c.eeprom_data):
+    label = tk.Label(tab4, text=f"{x[0]}:")
+    label.grid(row=row, column=col)
+    
+    value_text = tk.Text(tab4, wrap=tk.WORD, width=10, height=1)
+    value_text.insert(tk.END, x[1])
+    value_text.configure(state="normal")
+    value_text.grid(row=row, column=col+1)
+
+    eeprom_labels[x[0]] = label
+    eeprom_values[x[0]] = value_text
+
+    if(row == 23):
+        col += 2
+        row = 3
+    row += 1
+
 
 # Rest of your code
-app.mainloop()      
+root.mainloop()
