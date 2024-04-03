@@ -42,8 +42,8 @@ class Battery(ParsedPacket):
         self.eeprom_end = [0x00, 0x00]
         self.pack_allVoltage = ["Voltage_" + str(i) for i in range(1, 24)]
         self.pack_allTemperature = ["Temperature_" + str(i) for i in range(1, 5)]
-        status_flags = ["BAT_en/dn", "Char_SW_Stat", "Dis_SW_Stat", "Char_SW_Stat", "Char_SW_Fault", "Over_Temp_flag", "Un_Temp_flag",
-                       "Char_OC", "Dis_OC", "Temper_SW_flag", "BAT_UV", "BAT_OC", "New_CONFIG_flag", "Ext_EEPROM_full", "TBD1", "TBD2", "TBD3", "TBD4"]
+        status_flags = ["BAT_en/dn", "Char_SW_Stat", "Dis_SW_Stat", "Char_SW_Fault", "Dis_SW_Fault", "Over_Temp_flag", "Un_Temp_flag",
+                       "Char_OC", "Dis_OC", "Temper_SW_flag", "BAT_UV", "BAT_OV", "New_CONFIG_flag", "Ext_EEPROM_full", "TBD1", "TBD2", "TBD3", "Vol_Limt_mismatch"]
         self.status_ = status_flags + ["UV_Cell" + str(i) for i in range(1, 24)] + ["OV_Cell" + str(i) for i in range(1, 24)]
         self.adc = ["Voltage_ADC_Cell_" + str(i) for i in range(1, 24)] + ["Current_ADC"] + ["Temperature_ADC_" + str(i) for i in range(1, 5)]
         self.eeprom_data = [0x00] * 128
@@ -58,6 +58,12 @@ class Battery(ParsedPacket):
                                          "Micro Status Flag","Micro Status Flag","SOC","SOH","Discharging Wh","Discharging Wh","Discharging Wh","Discharging Wh","Charging Wh","Charging Wh","Charging Wh",
                                          "Charging Wh","Discharging Timer","Discharging Timer","Discharging Timer","Discharging Timer","Charging Timer","Charging Timer","Charging Timer","Charging Timer" ]
         self.eeprom_page_data = eep_page_data + ["TBD_" + str(i) for i in range(1, 22)]
+
+        self.variables_to = ["type","ID","capacity","temperature","voltage","current", "SoC", 
+                          "SoH","charging_KWh","discharging_KWh","charging_time","discharging_time", 
+                          "voltage_high","voltage_low","temperature_high","temperature_low","cell_voltage_max_limt", 
+                          "cell_voltage_min_limt","temperature_max_limt","temperature_min_limt","charging_curr_max_limt", 
+                          "discharging_curr_max_limt"]
 
         
 
@@ -87,7 +93,7 @@ class Battery(ParsedPacket):
             ("Temperature max Limt", self.temperature_max_limt),
             ("Temperature min Limt", self.temperature_min_limt),
             ("Charging Curr max Limt", self.charging_curr_max_limt),
-            ("Discharging Curr max Limt", self.discharging_curr_max_limt),
+            ("Discharging Curr max Limt", self.discharging_curr_max_limt)
             #("All Voltage", self.all_voltage),
             #("All Temperature", self.all_temperature),
             #("Micro Status", self.micro_status)
@@ -162,6 +168,13 @@ class Battery(ParsedPacket):
             data = self.eeprom_tostart
 
         return data
+    
+    def set_variable(self, var_name, value):
+            if hasattr(self, var_name):
+                setattr(self, var_name, value)
+            else:
+                print(f"Error: '{var_name}' is not a valid variable in this class.")
+
     
     def data_parser(self, cmd, data):
         index = 0

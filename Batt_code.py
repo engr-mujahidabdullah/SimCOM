@@ -119,9 +119,13 @@ def send_data():
     c.eeprom_end = eeprom_end_var.get()
     c.eeprom_tostart = eeprom_tostart_var.get()
 
+    i = 0
     for var_name, var_value in c.batt_variable().items():
         var_value_int = variables_values[var_name].get("1.0", tk.END).strip()
-        var_value = c.update_hex_array(int(var_value_int), len(var_value))
+        var_val = c.update_hex_array(int(var_value_int), len(var_value))
+        c.set_variable(c.variables_to[i], var_val)
+        #c.variables_to[i] = c.update_hex_array(int(var_value_int), len(var_value))
+        i += 1
 
     adc_list = []
     for var_name, var_value in c.translate_battery_pram(c.adc, c.adc_vals).items():
@@ -133,9 +137,9 @@ def send_data():
     for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
         status_value_list.append(status_values[var_name].get().strip())
     c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
-    print(c.micro_status)
 
     pack.data = c.send_payload(pack.cmd)
+    print(pack.data)
     ser.reset_input_buffer()
 
 

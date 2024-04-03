@@ -104,13 +104,14 @@ def send_data():
     for var_name, var_value in c.batt_variable().items():
         var_value_int = variables_values[var_name].get("1.0", tk.END).strip()
         var_value = c.update_hex_array(int(var_value_int), len(var_value))
+    print(c.batt_variable())
     
-    status_value_list = []
-    for var_name, var_value in c.translate_Battery_status(c.status, c.micro_status).items():
-        status_value_list.append(status_values[var_name].get().strip())
+#    status_value_list = []
+ #   for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
+ #       status_value_list.append(status_values[var_name].get().strip())
         
             #var_value = c.update_hex_array(int(var_value_int), len(var_value))  # Get the text from the text box
-    c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
+ #   c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
 
     pack.data = c.send_payload(pack.cmd)
     ser.reset_input_buffer()
@@ -150,7 +151,7 @@ def update_variable_values():
         Tem_values[var_name].insert(tk.END, var_value * 0.01)  # Set the new value
         Tem_values[var_name].configure(state="disabled")
 
-    for var_name, var_value in c.translate_Battery_status(c.status, c.micro_status).items():
+    for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
         status_values[var_name].delete(0, tk.END)  # Clear the existing text
         status_values[var_name].insert(tk.END, var_value)  # Set the new value
 
