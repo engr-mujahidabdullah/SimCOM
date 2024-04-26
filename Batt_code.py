@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import scrolledtext
 
+import os
 import serial
 import threading
 from Packet import ParsedPacket
@@ -64,20 +65,20 @@ def read_serial_data():
                 if x == 0xff00 or x == 0xff55:
                     stream.append(data)
                     packet_length = ser.read(2)
-                    print(packet_length)
+                    #print(packet_length)
                     stream.append(packet_length)
                     leng = int.from_bytes(packet_length, 'big')
                     d_size = leng - 4
-                    print(d_size)
+                    #print(d_size)
                     data = ser.read(d_size)
                     stream.append(data)
                 ser.reset_input_buffer()
                 stream = [int(byte) for byte_string in stream for byte in byte_string]
-                print(stream)
+                #print(stream)
 
 
                 if pack.is_crc_valid(stream):
-                    print("CRC is valid.")
+                    #print("CRC is valid.")
                     _data_ = pack.parse_received_packet(stream)
                     received_data_text.insert(tk.END, f"CMD: {hex(_data_.cmd)}\n")
                     received_data_text.insert(tk.END, f"Type: {hex(_data_.type)}\n")
@@ -139,6 +140,8 @@ def send_data():
     c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
 
     pack.data = c.send_payload(pack.cmd)
+    #
+    # 
     print(pack.data)
     ser.reset_input_buffer()
 
@@ -183,11 +186,23 @@ def update_variable_values():
         adc_values[var_name].insert(tk.END, var_value)  # Set the new value
         adc_values[var_name].configure(state="normal")
 
-    for vars in c.translate_eeprom_page(c.eeprom_page_data, c.eeprom_data):
+    for vars in c.eprom_data_prompt(c.eeprom_data):
         eeprom_values[vars[0]].configure(state="normal")
         eeprom_values[vars[0]].delete("1.0", tk.END)  # Clear the existing text
         eeprom_values[vars[0]].insert(tk.END, vars[1])  # Set the new value
         eeprom_values[vars[0]].configure(state="normal")
+    #os.system('cls' if os.name == 'nt' else 'clear')
+    #eeprom_vars = c.eprom_data_prompt(c.eeprom_data)
+    #for i in range(len(eeprom_vars)):print(eeprom_vars[i])
+    
+#    for vars in c.translate_eeprom_page(c.eeprom_page_data, c.eeprom_data):
+#        eeprom_values[vars[0]].configure(state="normal")
+#        eeprom_values[vars[0]].delete("1.0", tk.END)  # Clear the existing text
+#        eeprom_values[vars[0]].insert(tk.END, vars[1])  # Set the new value
+#        eeprom_values[vars[0]].configure(state="normal")
+#    os.system('cls' if os.name == 'nt' else 'clear')
+#    eeprom_vars = c.eprom_data_prompt(c.eeprom_data)
+#    for i in range(len(eeprom_vars)):print(eeprom_vars[i])
 
     for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
         status_values[var_name].configure(state="normal")
@@ -447,7 +462,7 @@ col = 0
 eeprom_labels = {}
 eeprom_values = {}
 
-for x in c.translate_eeprom_page(c.eeprom_page_data, c.eeprom_data):
+for x in c.eprom_data_prompt(c.eeprom_data):
     label = tk.Label(tab4, text=f"{x[0]}:")
     label.grid(row=row, column=col)
     

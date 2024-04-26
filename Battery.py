@@ -48,7 +48,7 @@ class Battery(ParsedPacket):
         self.adc = ["Voltage_ADC_Cell_" + str(i) for i in range(1, 24)] + ["Current_ADC"] + ["Temperature_ADC_" + str(i) for i in range(1, 5)]
         self.eeprom_data = [0x00] * 128
 
-        eep_page_data = ["Data Index 1", "Data Index 2","-","--","Years","Months","Days1","Days2","Hours","Minutes","Seconds"]
+        eep_page_data = ["Data Index 1", "Data Index 2","-","-","Years","Months","Days1","Days2","Hours","Minutes","Seconds"]
         eep_page_data = eep_page_data + [f"cell_{i}" for i in range(1, 24) for _ in range(2)] 
         eep_page_data = eep_page_data + ["Peak Charging Current", "Peak Charging Current","Peak Charging Current","Peak Charging Current","Average Charging Current",
                                          "Average Charging Current","Average Charging Current","Average Charging Current","Peak Discharging Current","Peak Discharging Current",
@@ -135,6 +135,7 @@ class Battery(ParsedPacket):
     
     def translate_eeprom_page(self, var_list, array):
         page = tuple(zip(var_list, array))
+        print(page)
         return page
     
     def translate_Battery_status(self, state, array):
@@ -181,6 +182,7 @@ class Battery(ParsedPacket):
 
         if(cmd == [0x0B, 0x00] or cmd == 0x0B00 or cmd == [0x0C, 0x00] or cmd == 0x0C00):
             self.eeprom_data = data[index: index + 128]
+            print(self.eeprom_data)
             index += 128
 
         if(cmd == [0x0D, 0x00] or cmd == 0x0D00):
@@ -286,3 +288,57 @@ class Battery(ParsedPacket):
             
         else:
             return -1
+        
+    def eprom_data_prompt(self, data):
+        vars = [
+            ("Data Index", data[0:2]),
+            ("-", data[2:4]),
+            ("Years", hex(data[4])),
+            ("Months", hex(data[5])),
+            ("Date", hex(data[6])),
+            ("Day", hex(data[7])),
+            ("Hours",hex(data[8])),
+            ("Minute",hex(data[9])),
+            ("Second",hex(data[10])),
+            ("Cell 1",self.hex_array_to_value(data[11:13])),
+            ("Cell 2",self.hex_array_to_value(data[13:15])),
+            ("Cell 3",self.hex_array_to_value(data[15:17])),
+            ("Cell 4",self.hex_array_to_value(data[17:19])),
+            ("Cell 5",self.hex_array_to_value(data[19:21])),
+            ("Cell 6",self.hex_array_to_value(data[21:23])),
+            ("Cell 7",self.hex_array_to_value(data[23:25])),
+            ("Cell 8",self.hex_array_to_value(data[25:27])),
+            ("Cell 9",self.hex_array_to_value(data[27:29])),
+            ("Cell 10",self.hex_array_to_value(data[29:31])),
+            ("Cell 11",self.hex_array_to_value(data[31:33])),
+            ("Cell 12",self.hex_array_to_value(data[33:35])),
+            ("Cell 13",self.hex_array_to_value(data[35:37])),
+            ("Cell 14",self.hex_array_to_value(data[37:39])),
+            ("Cell 15",self.hex_array_to_value(data[39:41])),
+            ("Cell 16",self.hex_array_to_value(data[41:43])),
+            ("Cell 17",self.hex_array_to_value(data[43:45])),
+            ("Cell 18",self.hex_array_to_value(data[45:47])),
+            ("Cell 19",self.hex_array_to_value(data[47:49])),
+            ("Cell 20",self.hex_array_to_value(data[49:51])),
+            ("Cell 21",self.hex_array_to_value(data[51:53])),
+            ("Cell 22",self.hex_array_to_value(data[53:55])),
+            ("Cell 23",self.hex_array_to_value(data[55:57])),
+            ("Peak Charging Current",self.hex_array_to_value(data[57:61])),
+            ("Average Charging Current",self.hex_array_to_value(data[61:65])),
+            ("Peak Discharging Current",self.hex_array_to_value(data[65:69])),
+            ("Average Discharging Current",self.hex_array_to_value(data[69:73])),
+            ("Max Temperature 1",self.hex_array_to_value(data[73:75])),
+            ("Max Temperature 2",self.hex_array_to_value(data[75:77])),
+            ("Max Temperature 3",self.hex_array_to_value(data[77:79])),
+            ("Max Temperature 4",self.hex_array_to_value(data[79:81])),
+            ("Micro Status Flag",self.hex_array_to_value(data[81:89])),
+            ("SoC", data[89]),
+            ("SoH", data[90]),
+            ("Discharging Wh",self.hex_array_to_value(data[91:95])),
+            ("Charging Wh",self.hex_array_to_value(data[95:99])),
+            ("Discharging Timer",self.hex_array_to_value(data[99:103])),
+            ("Charging Timer",self.hex_array_to_value(data[103:107])),
+            ("TBD",self.hex_array_to_value(data[107:]))
+        ]
+        return vars
+        
