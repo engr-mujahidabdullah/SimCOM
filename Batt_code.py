@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import * 
 from tkinter import ttk
 from tkinter import scrolledtext
 
@@ -9,6 +10,10 @@ from Packet import ParsedPacket
 from Battery import Battery
 import serial.tools.list_ports
 
+from PIL import Image, ImageTk
+
+import csv
+
 
 root = tk.Tk() 
 root.title("Tab Widget") 
@@ -18,13 +23,32 @@ tab1 = ttk.Frame(tabControl)
 tab2 = ttk.Frame(tabControl) 
 tab3 = ttk.Frame(tabControl)
 tab4 = ttk.Frame(tabControl)
+#tab5 = ttk.Frame(tabControl)
+tab6 = ttk.Frame(tabControl)
 
 tabControl.add(tab1, text ='Main') 
 tabControl.add(tab2, text ='Flags/ADC')
 tabControl.add(tab4, text ='EEPROM') 
-tabControl.add(tab3, text ='Voltage') 
+tabControl.add(tab3, text ='Voltage')
+#tabControl.add(tab5, text ='Status') 
+tabControl.add(tab6, text ='About') 
 tabControl.pack(expand = 1, fill ="both") 
 
+# Function to save dictionary to CSV file
+def save_to_csv(data, filename):
+    with open(filename, 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        writer.writerow(data)
+
+# Function to load dictionary from CSV file
+def load_from_csv(filename):
+    with open(filename, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            return row
+
+filename = 'data.csv'
 
 def open_port():
     global ser, reading_data
@@ -142,7 +166,7 @@ def send_data():
     pack.data = c.send_payload(pack.cmd)
     #
     # 
-    print(pack.data)
+    #print(pack.data)
     ser.reset_input_buffer()
 
 
@@ -165,7 +189,9 @@ def update_variable_values():
         variables_values[var_name].configure(state="normal")
         variables_values[var_name].delete("1.0", tk.END)  # Clear the existing text
         variables_values[var_name].insert(tk.END, c.hex_array_to_value(var_value))  # Set the new value
+        var_value = c.hex_array_to_value(var_value)
         variables_values[var_name].configure(state="normal")
+    save_to_csv(c.batt_variable(), "data.csv")
 
 
     for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
@@ -173,12 +199,14 @@ def update_variable_values():
         Vol_values[var_name].delete("1.0", tk.END)  # Clear the existing text
         Vol_values[var_name].insert(tk.END, var_value)  # Set the new value
         Vol_values[var_name].configure(state="disabled")
+    save_to_csv(c.translate_battery_pram(c.pack_allVoltage, c.all_voltage), "voltage.csv")
 
     for var_name, var_value in c.translate_battery_pram(c.pack_allTemperature, c.all_temperature).items():
         Tem_values[var_name].configure(state="normal")
         Tem_values[var_name].delete("1.0", tk.END)  # Clear the existing text
         Tem_values[var_name].insert(tk.END, var_value * 0.01)  # Set the new value
         Tem_values[var_name].configure(state="disabled")
+    save_to_csv(c.translate_battery_pram(c.pack_allTemperature, c.all_temperature), "Temperature.csv")
 
     for var_name, var_value in c.translate_battery_pram(c.adc, c.adc_vals).items():
         adc_values[var_name].configure(state="normal")
@@ -288,7 +316,7 @@ data_label = tk.Label(tab1, text="Data:")
 data_var = tk.StringVar()
 data_entry = tk.Entry(tab1, textvariable=data_var)
 send_button = tk.Button(tab1, text="Send Data", command=auto_sender)
-received_data_text = scrolledtext.ScrolledText(tab1, wrap=tk.WORD, width=120, height=10)
+received_data_text = scrolledtext.ScrolledText(tab3, wrap=tk.WORD, width=120, height=10)
 autoTime_label = tk.Label(tab1, text="Auto Time (sec)")
 autoTime_var = tk.IntVar()
 autoTime_entry = tk.Entry(tab1, textvariable=autoTime_var)
@@ -321,6 +349,8 @@ eeprom_tostart_label = tk.Label(tab4, text="EEPROM Start Addr to read:")
 eeprom_tostart_var = tk.StringVar()
 eeprom_tostart_entry = tk.Entry(tab4, textvariable=eeprom_tostart_var)
 
+
+
 # Place widgets in the window
 com_port_label.grid(row=0, column=0)
 com_port_dropdown.grid(row=0, column=1)
@@ -345,7 +375,7 @@ Reset_macro_label.grid(row = 8, column =0)
 Reset_macro_entry.grid(row = 8, column =1)
 bat_en_label.grid(row = 9, column =0)
 bat_en_entry.grid(row = 9, column =1)
-received_data_text.grid(row=25, column=0, columnspan=12, rowspan=10)
+received_data_text.grid(row=20, column=0, columnspan=12, rowspan=10)
 Voltage_data_text.grid(row=1, column=0, columnspan=12, rowspan=10)
 eeprom_start_label.grid(row=0, column=0)
 eeprom_start_entry.grid(row=0, column=1)
@@ -353,8 +383,9 @@ eeprom_end_label.grid(row=1, column=0)
 eeprom_end_entry.grid(row=1, column=1)
 eeprom_tostart_label.grid(row=0, column=2)
 eeprom_tostart_entry.grid(row=0, column=3)
-
-row = 1
+#labelpic.grid(row=20, column=8, columnspan=3,rowspan=4)
+#labelpic.place(x=8,y=2)
+row = 2
 
 variables_labels = {}
 variables_values = {}
@@ -375,9 +406,29 @@ for var_name, var_value in variables_dict.items():
 Tem_labels = {}
 Tem_values = {}
 
-row = 1
+row = 2
 
 for var_name, var_value in c.translate_battery_pram(c.pack_allTemperature, c.all_temperature).items():
+    label = tk.Label(tab1, text=f"{var_name}:")
+    label.grid(row=row, column=10)
+    
+    value_text = tk.Text(tab1, wrap=tk.WORD, width=10, height=1)
+    value_text.insert(tk.END, var_value)
+    value_text.configure(state="disabled")
+    value_text.grid(row=row, column=11)
+
+    Tem_labels[var_name] = label
+    Tem_values[var_name] = value_text
+    row += 8
+
+
+row = 2
+i = 1
+Vol_labels = {}
+Vol_values = {}
+
+
+for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
     label = tk.Label(tab1, text=f"{var_name}:")
     label.grid(row=row, column=6)
     
@@ -386,29 +437,14 @@ for var_name, var_value in c.translate_battery_pram(c.pack_allTemperature, c.all
     value_text.configure(state="disabled")
     value_text.grid(row=row, column=7)
 
-    Tem_labels[var_name] = label
-    Tem_values[var_name] = value_text
-    row += 1
-
-
-row = 1
-
-Vol_labels = {}
-Vol_values = {}
-
-
-for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
-    label = tk.Label(tab1, text=f"{var_name}:")
-    label.grid(row=row, column=4)
-    
-    value_text = tk.Text(tab1, wrap=tk.WORD, width=10, height=1)
-    value_text.insert(tk.END, var_value)
-    value_text.configure(state="disabled")
-    value_text.grid(row=row, column=5)
-
     Vol_labels[var_name] = label
     Vol_values[var_name] = value_text
-    row += 1
+    if(i%6 == 0):
+        row += 2
+        i = 1
+    else:
+        row += 1
+        i += 1
 
 
 row = 1 
@@ -478,7 +514,6 @@ for x in c.eprom_data_prompt(c.eeprom_data):
         col += 2
         row = 3
     row += 1
-
-
+ 
 # Rest of your code
 root.mainloop()
