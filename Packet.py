@@ -1,9 +1,12 @@
 import serial
 from data_check import CRC16
 
-req_Header = [0xff, 0x00]
-res_Header = [0xff, 0x55]
+req_Header = [0xff, 0x00] #request header
+res_Header = [0xff, 0x55] #response header
 
+"""
+Data frame structure length
+"""
 header_size = 2
 packetLen_size = 2
 cmd_size = 2
@@ -13,11 +16,25 @@ payloadLen_size = 2
 crc_size = 2
 
 class Packet(CRC16):
+
+    """Initialize the Packet class, which inherits from CRC16."""
     def __init__(self):
-        #self.crc = CRC16()
         self.parse_packet = ParsedPacket()
         pass
 
+    """
+        Create a packet with the given parameters.
+
+        Args:
+            serial_no (int or list of bytes): Serial number of the packet.
+            cmd (list of bytes): Command bytes.
+            type (list of bytes): Type bytes.
+            data (list of bytes or str): Data payload.
+            request (bool): Whether the packet is a request or response.
+
+        Returns:
+            list of bytes: The constructed packet.
+    """
     def _packet_(self, serial_no = 0x00000000 , cmd = [0x00,0x00], type = [0x000], data = [], request = True):
         if(data != ''):
             byte_data = self.type_convert(data)
@@ -58,15 +75,26 @@ class Packet(CRC16):
         crc = self.min_CRC16(packet).to_bytes(2, byteorder='big')
         packet = packet + [byte for byte in crc]
         return packet
- 
+
+
 class ParsedPacket(Packet):
     def __init__(self):
+        """Initialize the ParsedPacket class."""
         self.cmd = 0x0000
         self.type = 0x00
         self.serial = 0x00000000
         self.data_len = 0x0000
         self.data = []
         
+    """
+        Parse a received packet.
+
+        Args:
+            received_packet (list of bytes): The received packet.
+
+        Returns:
+            ParsedPacket: The instance of the class with parsed data.
+    """
 
     def parse_received_packet(self, received_packet):
         if self.is_crc_valid(received_packet):
@@ -101,13 +129,24 @@ class ParsedPacket(Packet):
             self.data = received_packet[index:-2]
 
             return self
-        
+        else:
+            return None
+
+    """
+        Get the parsed data from the packet.
+
+        Returns:
+            list of bytes or int: The parsed data or -1 if an error occurs.
+    """    
     def get_data(self):
         try:
             return self.data
         except:
             return -1
-        
+
+    """
+    Print all attributes of the parsed packet instance.
+    """       
     def packet_attributes(self):
         attributes = vars(self)  # Get all attributes of the class instance
         for attr_name, attr_value in attributes.items():
