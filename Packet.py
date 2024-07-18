@@ -81,10 +81,12 @@ class ParsedPacket(Packet):
 
             # Extract type
             self.type = received_packet[index]
+            self.type = self.update_hex_array(self.type,1)
             index += 1
 
             # Extract serial
             self.serial = (received_packet[index] << 24) | (received_packet[index + 1] << 16) | (received_packet[index + 2] << 8) | received_packet[index + 3]
+            self.serial = self.update_hex_array(self.serial,4)
             index += 4
 
             # Extract command

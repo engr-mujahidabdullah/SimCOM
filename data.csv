@@ -1,0 +1,2 @@
+Type,ID,Capacity,Temperature,Voltage,Current,SoC,SoH,KWh Charging,KWh Discharging,Charging Time,Discgarging Time,Voltage High,Voltage Low,Temperature High,Temperature Low,Cell Voltage max Limt,Cell Voltage min Limt,Temperature max Limt,Temperature min Limt,Charging Curr max Limt,Discharging Curr max Limt
+[1],"[0, 0, 0, 1]","[0, 0, 0, 0]","[9, 85]","[29, 220]","[255, 255, 254, 168]",[0],[85],"[0, 0, 0, 0]","[0, 0, 0, 19]","[0, 0, 0, 0]","[0, 0, 0, 0]","[1, 78]","[1, 75]","[9, 105]","[9, 72]","[0, 0]","[0, 0]","[0, 0]","[0, 0]","[0, 0, 0, 0]","[0, 0, 0, 0]"

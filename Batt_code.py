@@ -98,26 +98,35 @@ def read_serial_data():
                     stream.append(data)
                 ser.reset_input_buffer()
                 stream = [int(byte) for byte_string in stream for byte in byte_string]
-                #print(stream)
+                print(stream)
 
 
                 if pack.is_crc_valid(stream):
-                    #print("CRC is valid.")
-                    _data_ = pack.parse_received_packet(stream)
-                    received_data_text.insert(tk.END, f"CMD: {hex(_data_.cmd)}\n")
-                    received_data_text.insert(tk.END, f"Type: {hex(_data_.type)}\n")
-                    received_data_text.insert(tk.END, f"Serial: {hex(_data_.serial)}\n")
-                    received_data_text.insert(tk.END, f"Data Length: {_data_.data_len}\n")
-                    received_data_text.insert(tk.END, f"Data: {_data_.data}\n")
-                    c.type = c.type_convert(_data_.type)
-                    c.ID = c.type_convert(_data_.serial)
-                    c.data_parser(_data_.cmd, _data_.data)
-                    Voltage_data_text.insert(tk.END, f"{[c.all_voltage[i+1] + (c.all_voltage[i] << 8) for i in range(0, len(c.all_voltage), 2)]}\n")
-                    Voltage_data_text.see(tk.END)
-                    received_data_text.see(tk.END)
 
-                    #c.translate_Charger_status(c.status, c.char0200)
-                    update_variable_values()
+                    _data_ = pack.parse_received_packet(stream)
+                    
+                    if(x == 0xff55):
+                        #print("CRC is valid.")
+                        #received_data_text.insert(tk.END, f"CMD: {hex(_data_.cmd)}\n")
+                        #received_data_text.insert(tk.END, f"Type: {hex(_data_.type)}\n")
+                        #received_data_text.insert(tk.END, f"Serial: {hex(_data_.serial)}\n")
+                        #received_data_text.insert(tk.END, f"Data Length: {_data_.data_len}\n")
+                        #received_data_text.insert(tk.END, f"Data: {_data_.data}\n")
+                        c.type = c.type_convert(_data_.type)
+                        c.ID = c.type_convert(_data_.serial)
+                        c.data_parser(_data_.cmd, _data_.data)
+                        Voltage_data_text.insert(tk.END, f"{[c.all_voltage[i+1] + (c.all_voltage[i] << 8) for i in range(0, len(c.all_voltage), 2)]}\n")
+                        Voltage_data_text.see(tk.END)
+                        received_data_text.see(tk.END)
+
+                        #c.translate_Charger_status(c.status, c.char0200)
+                        update_variable_values()
+                    
+                    if(x == 0xff00):
+                        print("Simulator")
+                        read_vars()
+                        ser.write(c.response(stream))
+
                 else:
                     print("Invalid CRC")
                 tab1.update()
@@ -128,6 +137,42 @@ def read_serial_data():
             print ('Reset exception')
             open_port()
         pass
+
+def read_vars():
+    c.session_id = Session_ID_var.get()
+    c.macro_status = Reset_macro_var.get()
+    c.bat_en = bat_en_var.get()
+    c.eeprom_start = eeprom_start_var.get()
+    c.eeprom_end = eeprom_end_var.get()
+    c.eeprom_tostart = eeprom_tostart_var.get()
+    c.mode = Mode_var.get()
+
+    i = 0
+    for var_name, var_value in c.batt_variable().items():
+        var_value_int = variables_values[var_name].get("1.0", tk.END).strip()
+        var_val = c.update_hex_array(int(var_value_int), len(var_value))
+        c.set_variable(c.variables_to[i], var_val)
+        #c.variables_to[i] = c.update_hex_array(int(var_value_int), len(var_value))
+        i += 1
+
+    i = 0
+    for var_name, var_value in c.time_variables().items():
+        var_value_int = time_values[var_name].get("1.0", tk.END).strip()
+        var_val = c.update_hex_array(int(var_value_int), len(var_value))
+        c.set_variable(c.time_to[i], var_val)
+        i += 1
+
+
+    adc_list = []
+    for var_name, var_value in c.translate_battery_pram(c.adc, c.adc_vals).items():
+        adc_value_int = adc_values[var_name].get("1.0", tk.END).strip()
+        adc_list = adc_list + (c.update_hex_array(int(adc_value_int), 2))
+    c.adc_vals = adc_list
+    
+    status_value_list = []
+    for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
+        status_value_list.append(status_values[var_name].get().strip())
+    c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
 
 def send_data():    
     global ser, selected_port
@@ -144,29 +189,11 @@ def send_data():
     c.eeprom_end = eeprom_end_var.get()
     c.eeprom_tostart = eeprom_tostart_var.get()
 
-    i = 0
-    for var_name, var_value in c.batt_variable().items():
-        var_value_int = variables_values[var_name].get("1.0", tk.END).strip()
-        var_val = c.update_hex_array(int(var_value_int), len(var_value))
-        c.set_variable(c.variables_to[i], var_val)
-        #c.variables_to[i] = c.update_hex_array(int(var_value_int), len(var_value))
-        i += 1
-
-    adc_list = []
-    for var_name, var_value in c.translate_battery_pram(c.adc, c.adc_vals).items():
-        adc_value_int = adc_values[var_name].get("1.0", tk.END).strip()
-        adc_list = adc_list + (c.update_hex_array(int(adc_value_int), 2))
-    c.adc_vals = adc_list
-    
-    status_value_list = []
-    for var_name, var_value in c.translate_Battery_status(c.status_, c.micro_status).items():
-        status_value_list.append(status_values[var_name].get().strip())
-    c.micro_status = c.update_hex_array(int(c.binary_to_val(status_value_list)), len(c.micro_status))
+    read_vars()
 
     pack.data = c.send_payload(pack.cmd)
-    #
-    # 
-    #print(pack.data)
+  
+
     ser.reset_input_buffer()
 
 
@@ -193,6 +220,12 @@ def update_variable_values():
         variables_values[var_name].configure(state="normal")
     save_to_csv(c.batt_variable(), "data.csv")
 
+    for var_name, var_value in c.time_variables().items():
+        time_values[var_name].configure(state="normal")
+        time_values[var_name].delete("1.0", tk.END)  # Clear the existing text
+        time_values[var_name].insert(tk.END, c.hex_array_to_value(var_value))  # Set the new value
+        var_value = c.hex_array_to_value(var_value)
+        time_values[var_name].configure(state="normal")
 
     for var_name, var_value in c.translate_battery_pram(c.pack_allVoltage, c.all_voltage).items():
         Vol_values[var_name].configure(state="normal")
@@ -264,6 +297,10 @@ def update_variable_values():
     bat_en_entry.insert(tk.END, c.bat_en)
     bat_en_entry.configure(state="normal")
 
+    Mode_combo.configure(state="normal")
+    Mode_combo.delete(0, tk.END)
+    Mode_combo.insert(tk.END, c.mode)
+    Mode_combo.configure(state="normal")
 
 import time
 def auto_send():
@@ -311,7 +348,7 @@ device_type_entry = tk.Entry(tab1, textvariable=device_type_var)
 command_label = tk.Label(tab1, text="Command:")
 command_var = tk.StringVar()
 command_combo = ttk.Combobox(tab1, textvariable=command_var)
-command_combo['values'] = ("0100", "0200", '0300', '0400', '0500', '0600', '0700', '0B00', '0C00', '0D00')
+command_combo['values'] = ("0100", "0200", '0300', '0400', '0500', '0600', '0700', '0B00', '0C00', '0D00', '0E00', '0F00', '1000', '1200', '1300')
 data_label = tk.Label(tab1, text="Data:")
 data_var = tk.StringVar()
 data_entry = tk.Entry(tab1, textvariable=data_var)
@@ -349,7 +386,9 @@ eeprom_tostart_label = tk.Label(tab4, text="EEPROM Start Addr to read:")
 eeprom_tostart_var = tk.StringVar()
 eeprom_tostart_entry = tk.Entry(tab4, textvariable=eeprom_tostart_var)
 
-
+Mode_label = tk.Label(tab1, text="Mode:")
+Mode_var = tk.StringVar()
+Mode_combo = ttk.Entry(tab1, textvariable=Mode_var)
 
 # Place widgets in the window
 com_port_label.grid(row=0, column=0)
@@ -383,8 +422,30 @@ eeprom_end_label.grid(row=1, column=0)
 eeprom_end_entry.grid(row=1, column=1)
 eeprom_tostart_label.grid(row=0, column=2)
 eeprom_tostart_entry.grid(row=0, column=3)
+Mode_label.grid(row=12, column=0)
+Mode_combo.grid(row=12, column=1)
 #labelpic.grid(row=20, column=8, columnspan=3,rowspan=4)
 #labelpic.place(x=8,y=2)
+
+row = 14
+
+time_labels = {}
+time_values = {}
+
+for var_name, var_value in c.time_variables().items():
+    label = tk.Label(tab1, text=f"{var_name}:")
+    label.grid(row=row, column=0)
+    
+    value_text = tk.Text(tab1, wrap=tk.WORD, width=10, height=1)
+    value_text.insert(tk.END, c.hex_array_to_value(var_value))
+    value_text.configure(state="normal")
+    value_text.grid(row=row, column=1)
+
+    time_labels[var_name] = label
+    time_values[var_name] = value_text
+    row += 1
+
+
 row = 2
 
 variables_labels = {}

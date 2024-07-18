@@ -3,9 +3,9 @@ from Packet import Packet, ParsedPacket
 
 class Battery(ParsedPacket):
 
-    def __init__(self, ID = [0x00,0x00, 0x00, 0x03]):
+    def __init__(self):
         self.type = [0x02]
-        self.ID = ID
+        self.ID = [0x00,0x00, 0x00, 0x03]
         self.capacity = [0x00, 0x00, 0x00, 0x00]  # in milliampere-hours (mAh)
         self.temperature = [0x00, 0x00] # in Celcius 
         self.voltage = [0x00, 0x00]    # in volts (V)
@@ -64,9 +64,31 @@ class Battery(ParsedPacket):
                           "voltage_high","voltage_low","temperature_high","temperature_low","cell_voltage_max_limt", 
                           "cell_voltage_min_limt","temperature_max_limt","temperature_min_limt","charging_curr_max_limt", 
                           "discharging_curr_max_limt"]
+        
+        self.time_to = ["year", "month", "date", "day", "hr", "min", "sec"]
+        
+        self.year = [0x00]
+        self.month = [0x00]
+        self.date = [0x00]
+        self.day = [0x00]
+        self.hr = [0x00]
+        self.min = [0x00]
+        self.sec = [0x00]
+
+        self.mode = [0x00]
 
         
-
+    def time_variables(self):
+        variables = [
+            ("Year", self.year),
+            ("Month", self.month),
+            ("Date", self.date),
+            ("day", self.day),
+            ("Hour", self.hr),
+            ("Minute", self.min),
+            ("Second", self.sec)
+        ]
+        return dict(variables)
 
 
     def batt_variable(self):
@@ -111,20 +133,22 @@ class Battery(ParsedPacket):
 
     def response(self, data):
         data = self.process_packet(data)
-        if(data.type == [0x00] and data.serial == [0x00,0x00,0x00, 0x00] and data.cmd == [0x00,0x00]):
+
+        if(data.type == [0x00] and data.serial == [0x00,0x00,0x00, 0x00] and data.cmd == 0):
             return self._packet_(serial_no = self.ID, type = self.type, request=False)
         
-        if(data.type == [0x01] and data.serial == self.ID and data.cmd == [0x00,0x00]):
+        if(data.type == [0x01] and data.serial == self.ID and data.cmd == 0):
             return self._packet_(serial_no = self.ID, type = self.type, request=False)
         
-        if(data.type == [0x01] and data.cmd == [0x00,0x00]):
+        if(data.type == [0x01] and data.cmd == 0):
             return self._packet_(serial_no = self.ID, type = self.type, request=False)
         
-        if(data.type == [0x00] and data.serial == self.ID and data.cmd == [0x01,0x00]):
-            return self._packet_(serial_no = self.ID, type = self.type, request=False)
+        if(data.type == [0x01] and data.serial == self.ID and data.cmd == 256):#0100
+            data = self.voltage + self.voltage_high + self.voltage_low + self.current + self.temperature + self.temperature_high + self.temperature_low + self.SoC + self.SoH + self.charging_KWh + self.discharging_KWh + self.charging_time + self.discharging_time + self.status
+            return self._packet_(serial_no = self.ID, type = self.type, cmd = self.cmd, data = data, request=False)
         
-        if(data.type == self.type and data.serial == self.serial and data.cmd == 0x1111):
-            data = self.voltage + self.h_voltage + self.l_voltage + self.current + self.temperature + self.h_temperature + self.l_temperature + self.SoC + self.SoH + self.char_kwh + self.dis_kwh + self.char_time + self.dis_time + self.status
+        if(data.type == [0x01] and data.serial == self.ID and data.cmd == 1280):#0500
+            data = self.all_voltage + self.current + self.all_temperature + self.current + self.micro_status 
             return self._packet_(serial_no = self.ID, type = self.type, cmd = self.cmd, data = data, request=False)
         else:
             print("invalid")
@@ -165,8 +189,15 @@ class Battery(ParsedPacket):
         if(cmd == [0x07, 0x00] or cmd == "0700"):
             data = self.adc_vals
 
-        if(cmd == [0x0C, 0x00] or cmd == "0C00"):
+        if(cmd == [0x0C, 0x00] or cmd == "0C00" or cmd == [0x11,00] or cmd == "1100"):
             data = self.eeprom_tostart
+
+        if(cmd == [0x0F,0x00] or cmd == "0F00"):
+            data = self.year + self.month + self.date + self.day + self.hr + self.min + self.sec
+
+        
+        if(cmd == [0x13,0x00] or cmd == "1300"):
+            data = self.mode
 
         return data
     
@@ -180,12 +211,38 @@ class Battery(ParsedPacket):
     def data_parser(self, cmd, data):
         index = 0
 
-        if(cmd == [0x0B, 0x00] or cmd == 0x0B00 or cmd == [0x0C, 0x00] or cmd == 0x0C00):
+        if(cmd == [0x13,0x00] or cmd == "1300"):
+            self.mode = [data[index]]
+            index += 1
+
+        if(cmd == [0x0F, 0x00] or cmd == 0x0F00 or cmd == [0x0E, 0x00] or cmd == 0x0E00):
+            self.year = [data[index]]
+            index += 1
+
+            self.month = [data[index]]
+            index += 1
+
+            self.date = [data[index]]
+            index += 1
+
+            self.day = [data[index]]
+            index += 1
+
+            self.hr = [data[index]]
+            index += 1
+
+            self.min = [data[index]]
+            index += 1
+
+            self.sec = [data[index]]
+            index += 1
+
+        if(cmd == [0x0B, 0x00] or cmd == 0x0B00 or cmd == [0x0C, 0x00] or cmd == 0x0C000 or cmd == [0x10, 0x00] or cmd == 0x1000 or cmd == [0x11, 0x00] or cmd == 0x1100):
             self.eeprom_data = data[index: index + 128]
             print(self.eeprom_data)
             index += 128
 
-        if(cmd == [0x0D, 0x00] or cmd == 0x0D00):
+        if(cmd == [0x0D, 0x00] or cmd == 0x0D00 or cmd == [0x12,00] or cmd == 1200):
             self.eeprom_start = [data[index], data[index + 1]]
             index += 2
 
